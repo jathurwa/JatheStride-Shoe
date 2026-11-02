@@ -79,8 +79,14 @@
                 <div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-xl hover:border-stone-300 transition-all flex flex-col">
                     <!-- Image Card -->
                     <div class="relative bg-stone-100 p-6 flex items-center justify-center h-64 overflow-hidden">
+                        <?php if (!empty($shoe['sale_price'])): ?>
+                            <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-rose-600 text-white">
+                                Offer
+                            </span>
+                        <?php endif; ?>
+
                         <?php if (!empty($shoe['is_featured'])): ?>
-                            <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-stone-950">
+                            <span class="absolute <?= !empty($shoe['sale_price']) ? 'top-11' : 'top-3' ?> left-3 z-10 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-stone-950">
                                 Featured
                             </span>
                         <?php endif; ?>
@@ -117,9 +123,18 @@
                         <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
                             <div>
                                 <span class="text-xs text-stone-400 block font-medium">Price</span>
-                                <span class="text-lg font-black text-stone-950">
-                                    KSH <?= number_format((float)$shoe['price'], 2) ?>
-                                </span>
+                                <?php if (!empty($shoe['sale_price'])): ?>
+                                    <span class="text-lg font-black text-rose-700 block">
+                                        KSH <?= number_format((float) $shoe['sale_price'], 2) ?>
+                                    </span>
+                                    <span class="text-xs text-stone-400 line-through">
+                                        KSH <?= number_format((float) $shoe['price'], 2) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-lg font-black text-stone-950">
+                                        KSH <?= number_format((float) $shoe['price'], 2) ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
 
                             <a href="<?= base_url('product/' . ($shoe['slug'] ?: $shoe['id'])) ?>" 

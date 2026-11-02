@@ -67,7 +67,8 @@ INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `icon`) VALUES
 (2, 'Running', 'running', 'Ultralight responsive carbon-plated and cushioned runners.', 'fa-person-running'),
 (3, 'Boots', 'boots', 'Rugged, water-resistant handcrafted leather explorer boots.', 'fa-mountain'),
 (4, 'Formal', 'formal', 'Sleek Goodyear-welted oxfords, brogues and derby dress shoes.', 'fa-briefcase'),
-(5, 'Casual', 'casual', 'Comfortable everyday shoes for relaxed, versatile wear.', 'fa-shoe-prints')
+(5, 'Casual', 'casual', 'Comfortable everyday shoes for relaxed, versatile wear.', 'fa-shoe-prints'),
+(6, 'Kids', 'kids', 'Comfortable footwear for kids.', 'fa-child')
 ON DUPLICATE KEY UPDATE `name`=`name`;
 
 -- Seed Shoes

@@ -51,6 +51,7 @@
     <!-- Footer -->
     <footer class="bg-stone-950 text-stone-400 py-10 border-t border-stone-900 text-xs text-center">
         <p>&copy; <?= date('Y') ?> JatheStride Shoe E-Commerce. Vercel Serverless.</p>
+        <p> Designed by <a href="https://github.com/jathestride" target="_blank" class="text-amber-500 hover:text-amber-400">Elvis Ochieng</a></p>
         <p>Powered by <a href="https://codeigniter.com/" target="_blank" class="text-amber-500 hover:text-amber-400">CodeIgniter 4</a> & <a href="https://tailwindcss.com/" target="_blank" class="text-amber-500 hover:text-amber-400">Tailwind CSS</a></p>
     </footer>
     <?= $this->renderSection('scripts') ?>
