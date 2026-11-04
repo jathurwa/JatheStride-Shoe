@@ -18,10 +18,10 @@ class Shoes extends BaseController
 
     public function __construct()
     {
-        $this->shoeModel     = new ShoeModel();
-        $this->categoryModel = new CategoryModel();
+        $this->shoeModel      = new ShoeModel();
+        $this->categoryModel  = new CategoryModel();
         $this->sizeStockModel = new ShoeSizeStockModel();
-        $this->uploadService = new ImageUploadService();
+        $this->uploadService  = new ImageUploadService();
     }
 
     /**
@@ -70,14 +70,15 @@ class Shoes extends BaseController
 
     /**
      * Store New Shoe
+     * Supports BOTH machine file upload and direct image URL link
      */
     public function create()
     {
         $rules = [
-            'name'           => 'required|min_length[3]|max_length[255]',
-            'category_id'    => 'required|is_natural_no_zero',
-            'price'          => 'required|decimal|greater_than[0]',
-            'description'    => 'required|min_length[10]',
+            'name'             => 'required|min_length[3]|max_length[255]',
+            'category_id'      => 'required|is_natural_no_zero',
+            'price'            => 'required|decimal|greater_than[0]',
+            'description'      => 'required|min_length[10]',
             'colors_available' => 'permit_empty|max_length[255]',
         ];
 
@@ -90,22 +91,34 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('error', $sizeStockResult['error']);
         }
 
-        // Handle Image Upload via Serverless Cloudinary/S3 Service
+        // Handle Main Image: Supports BOTH Machine File Upload AND Direct Image Link URL
         $imageFile = $this->request->getFile('shoe_image');
-        $imageUrl = $this->request->getPost('image_url_direct');
+        $imageUrlDirect = trim((string)$this->request->getPost('image_url_direct'));
+        $imageUrl = null;
         $cloudinaryPublicId = null;
 
-        if ($imageFile && $imageFile->isValid()) {
+        // 1. If direct image link was supplied, pre-fill it
+        if (!empty($imageUrlDirect)) {
+            $imageUrl = $imageUrlDirect;
+        }
+
+        // 2. If a file was selected from machine/PC, attempt upload
+        if ($imageFile && $imageFile->isValid() && !$imageFile->hasMoved()) {
             $uploadResult = $this->uploadService->upload($imageFile, 'shoes');
-            if (!$uploadResult['success']) {
-                return redirect()->back()->withInput()->with('error', 'Cloud Image Upload Failed: ' . $uploadResult['error']);
+            if ($uploadResult['success']) {
+                $imageUrl = $uploadResult['url'];
+                $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
+            } else {
+                // If machine upload cannot write (e.g. on Vercel without Cloudinary),
+                // but direct URL link was entered, fallback to direct link without failing!
+                if (empty($imageUrl)) {
+                    return redirect()->back()->withInput()->with('error', $uploadResult['error']);
+                }
             }
-            $imageUrl = $uploadResult['url'];
-            $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
         }
 
         if (empty($imageUrl)) {
-            return redirect()->back()->withInput()->with('error', 'Please upload a shoe image or supply a valid cloud CDN URL.');
+            return redirect()->back()->withInput()->with('error', 'Please upload a shoe image from your PC OR provide a direct image link URL.');
         }
 
         $galleryResult = $this->collectGalleryImages();
@@ -149,7 +162,7 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->shoeModel->errors());
         }
 
-        return redirect()->to('/admin')->with('success', "Shoe '{$name}' has been created and image synced to cloud storage.");
+        return redirect()->to('/admin')->with('success', "Shoe '{$name}' created successfully.");
     }
 
     /**
@@ -180,10 +193,10 @@ class Shoes extends BaseController
         }
 
         $rules = [
-            'name'           => 'required|min_length[3]|max_length[255]',
-            'category_id'    => 'required|is_natural_no_zero',
-            'price'          => 'required|decimal|greater_than[0]',
-            'description'    => 'required|min_length[10]',
+            'name'             => 'required|min_length[3]|max_length[255]',
+            'category_id'      => 'required|is_natural_no_zero',
+            'price'            => 'required|decimal|greater_than[0]',
+            'description'      => 'required|min_length[10]',
             'colors_available' => 'permit_empty|max_length[255]',
         ];
 
@@ -221,17 +234,23 @@ class Shoes extends BaseController
 
         $imageUrl = $shoe['image_url'];
         $cloudinaryPublicId = $shoe['cloudinary_public_id'];
+        $imageUrlDirect = trim((string)$this->request->getPost('image_url_direct'));
 
-        // Check if a replacement file was uploaded
+        // If direct image URL provided, update it
+        if (!empty($imageUrlDirect)) {
+            $imageUrl = $imageUrlDirect;
+        }
+
+        // Check if a replacement file was uploaded from machine
         $imageFile = $this->request->getFile('shoe_image');
-        if ($imageFile && $imageFile->isValid()) {
+        if ($imageFile && $imageFile->isValid() && !$imageFile->hasMoved()) {
             $uploadResult = $this->uploadService->upload($imageFile, 'shoes');
             if ($uploadResult['success']) {
                 $imageUrl = $uploadResult['url'];
                 $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
+            } elseif (empty($imageUrlDirect)) {
+                return redirect()->back()->withInput()->with('error', $uploadResult['error']);
             }
-        } elseif ($this->request->getPost('image_url_direct')) {
-            $imageUrl = $this->request->getPost('image_url_direct');
         }
 
         $galleryResult = $this->collectGalleryImages($shoe['gallery_images'] ?? null);
@@ -310,19 +329,19 @@ class Shoes extends BaseController
         $database->transStart();
         $this->sizeStockModel->addQuantities($shoeId, $entries);
         $updated = $this->shoeModel->update($shoeId, [
-            'name'            => $shoe['name'],
-            'slug'            => $shoe['slug'],
-            'category_id'     => $shoe['category_id'],
-            'price'           => $shoe['price'],
-            'sale_price'      => $shoe['sale_price'],
-            'description'     => $shoe['description'],
-            'image_url'       => $shoe['image_url'],
-            'gallery_images'  => $shoe['gallery_images'],
+            'name'                 => $shoe['name'],
+            'slug'                 => $shoe['slug'],
+            'category_id'          => $shoe['category_id'],
+            'price'                => $shoe['price'],
+            'sale_price'           => $shoe['sale_price'],
+            'description'          => $shoe['description'],
+            'image_url'            => $shoe['image_url'],
+            'gallery_images'       => $shoe['gallery_images'],
             'cloudinary_public_id' => $shoe['cloudinary_public_id'],
-            'sizes_available' => implode(',', $allSizes),
-            'colors_available' => $shoe['colors_available'],
-            'is_featured'     => $shoe['is_featured'],
-            'stock_quantity'  => (int) $shoe['stock_quantity'] + $received,
+            'sizes_available'      => implode(',', $allSizes),
+            'colors_available'     => $shoe['colors_available'],
+            'is_featured'          => $shoe['is_featured'],
+            'stock_quantity'       => (int) $shoe['stock_quantity'] + $received,
         ]);
         $database->transComplete();
 
@@ -432,10 +451,14 @@ class Shoes extends BaseController
 
         foreach ($files as $file) {
             $uploadResult = $this->uploadService->upload($file, 'shoes/gallery');
-            if (!$uploadResult['success']) {
-                return ['success' => false, 'error' => 'Gallery image upload failed: ' . $uploadResult['error']];
+            if ($uploadResult['success']) {
+                $images[] = $uploadResult['url'];
+            } else {
+                // If cloud upload fails but gallery URLs were provided, do not abort
+                if (empty($images)) {
+                    return ['success' => false, 'error' => 'Gallery image upload failed: ' . $uploadResult['error']];
+                }
             }
-            $images[] = $uploadResult['url'];
         }
 
         return ['success' => true, 'images' => array_values(array_unique($images))];
