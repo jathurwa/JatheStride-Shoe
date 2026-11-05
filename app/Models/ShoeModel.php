@@ -37,13 +37,14 @@ class ShoeModel extends Model
     protected $updatedField  = 'updated_at';
 
     // Strict Validation Rules
+    // Flexible Validation Rules
     protected $validationRules = [
         'name'           => 'required|min_length[3]|max_length[255]',
         'category_id'    => 'required|is_natural_no_zero',
-        'price'          => 'required|decimal|greater_than[0]',
-        'sale_price'     => 'permit_empty|decimal',
+        'price'          => 'required|numeric|greater_than[0]',
+        'sale_price'     => 'permit_empty|numeric',
         'description'    => 'required|min_length[10]',
-        'image_url'      => 'required|valid_url',
+        'image_url'      => 'required',
         'stock_quantity' => 'permit_empty|integer|greater_than_equal_to[0]',
     ];
 
