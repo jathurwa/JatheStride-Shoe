@@ -16,17 +16,23 @@
             <p class="text-xs text-stone-500 mt-1">Set starting quantities by shoe size. Additional stock is received separately.</p>
         </div>
 
+        <?php if (session()->getFlashdata('error')): ?>
+            <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                <?= esc(session()->getFlashdata('error')) ?>
+            </div>
+        <?php endif; ?>
+
         <?php if (session()->getFlashdata('errors')): ?>
             <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
                 <div class="font-bold mb-1">Please correct the following errors:</div>
                 <ul class="list-disc list-inside space-y-1">
-                    <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                    <?php foreach ((array)session()->getFlashdata('errors') as $error): ?>
                         <li><?= esc($error) ?></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
         <?php endif; ?>
-
         <form action="<?= base_url('admin/shoes/create') ?>" method="POST" enctype="multipart/form-data" class="space-y-6">
             <?= csrf_field() ?>
 
