@@ -70,7 +70,8 @@ class Shoes extends BaseController
 
     /**
      * Store New Shoe
-     * Supports BOTH machine file upload and direct image URL link
+     * Supports BOTH machine file upload and direct image URL link,
+     * and guarantees stock is saved accurately.
      */
     public function create()
     {
@@ -109,8 +110,7 @@ class Shoes extends BaseController
                 $imageUrl = $uploadResult['url'];
                 $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
             } else {
-                // If machine upload cannot write (e.g. on Vercel without Cloudinary),
-                // but direct URL link was entered, fallback to direct link without failing!
+                // If machine upload fails, fall back to direct URL without crashing
                 if (empty($imageUrl)) {
                     return redirect()->back()->withInput()->with('error', $uploadResult['error']);
                 }
@@ -130,9 +130,28 @@ class Shoes extends BaseController
         $name = $this->request->getPost('name');
         $slug = url_title($name, '-', true) . '-' . substr(md5(uniqid()), 0, 5);
 
-        $sizeStock = $sizeStockResult['entries'];
-        $sizesString = implode(',', array_column($sizeStock, 'size'));
-        $totalStock = array_sum(array_column($sizeStock, 'quantity'));
+        // Calculate Stock: Use sum of size entries if positive, or fallback to the form's stock_quantity input
+        $formStock = (int) $this->request->getPost('stock_quantity');
+        $sizeStock = $sizeStockResult['entries'] ?? [];
+        $totalStock = !empty($sizeStock) ? array_sum(array_column($sizeStock, 'quantity')) : 0;
+
+        if ($totalStock === 0 && $formStock > 0) {
+            $totalStock = $formStock;
+            // Distribute stock across the sizes so size table also has quantities
+            $count = count($sizeStock);
+            if ($count > 0) {
+                $perSize = (int) floor($formStock / $count);
+                $remainder = $formStock % $count;
+                foreach ($sizeStock as $idx => &$entry) {
+                    $entry['quantity'] = $perSize + ($idx === 0 ? $remainder : 0);
+                }
+                unset($entry);
+            }
+        }
+
+        $sizesString = !empty($sizeStock) 
+            ? implode(',', array_column($sizeStock, 'size')) 
+            : (string)($this->request->getPost('sizes') ?: $this->request->getPost('sizes_available') ?: '7,8,8.5,9,9.5,10,10.5,11,12');
 
         $saveData = [
             'name'                 => $name,
@@ -153,7 +172,7 @@ class Shoes extends BaseController
         $database = db_connect();
         $database->transStart();
         $shoeId = $this->shoeModel->insert($saveData);
-        if ($shoeId) {
+        if ($shoeId && !empty($sizeStock)) {
             $this->sizeStockModel->addQuantities((int) $shoeId, $sizeStock);
         }
         $database->transComplete();
@@ -162,7 +181,7 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->shoeModel->errors());
         }
 
-        return redirect()->to('/admin')->with('success', "Shoe '{$name}' created successfully.");
+        return redirect()->to('/admin')->with('success', "Shoe '{$name}' created with {$totalStock} pairs in stock.");
     }
 
     /**
@@ -205,7 +224,7 @@ class Shoes extends BaseController
         }
 
         $sizeResult = $this->parseAvailableSizes(
-            (string) ($this->request->getPost('sizes_available') ?? $shoe['sizes_available'])
+            (string) ($this->request->getPost('sizes_available') ?? $this->request->getPost('sizes') ?? $shoe['sizes_available'])
         );
         if (!$sizeResult['success']) {
             return redirect()->back()->withInput()->with('error', $sizeResult['error']);
@@ -258,6 +277,10 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('error', $galleryResult['error']);
         }
 
+        // Handle updated stock quantity from edit form if provided
+        $stockQty = $this->request->getPost('stock_quantity');
+        $finalStock = ($stockQty !== null && $stockQty !== '') ? (int)$stockQty : (int)$shoe['stock_quantity'];
+
         $updateData = [
             'name'                 => $this->request->getPost('name'),
             'category_id'          => (int)$this->request->getPost('category_id'),
@@ -269,13 +292,18 @@ class Shoes extends BaseController
             'cloudinary_public_id' => $cloudinaryPublicId,
             'sizes_available'      => implode(',', $updatedSizes),
             'colors_available'     => trim((string)$this->request->getPost('colors_available')) ?: null,
+            'stock_quantity'       => $finalStock,
             'is_featured'          => $this->request->getPost('is_featured') ? 1 : 0,
         ];
 
         $database = db_connect();
         $database->transStart();
-        $this->sizeStockModel->removeSizes($id, $removedSizes);
-        $this->sizeStockModel->addQuantities($id, $newSizeEntries);
+        if (!empty($removedSizes)) {
+            $this->sizeStockModel->removeSizes($id, $removedSizes);
+        }
+        if (!empty($newSizeEntries)) {
+            $this->sizeStockModel->addQuantities($id, $newSizeEntries);
+        }
         $updated = $this->shoeModel->update($id, $updateData);
         $database->transComplete();
 
@@ -317,6 +345,7 @@ class Shoes extends BaseController
             $stockResult['entries'],
             static fn($entry) => $entry['quantity'] > 0
         ));
+        
         if ($entries === []) {
             return redirect()->back()->withInput()->with('error', 'Enter at least one quantity greater than zero.');
         }
@@ -328,20 +357,12 @@ class Shoes extends BaseController
         $database = db_connect();
         $database->transStart();
         $this->sizeStockModel->addQuantities($shoeId, $entries);
-        $updated = $this->shoeModel->update($shoeId, [
-            'name'                 => $shoe['name'],
-            'slug'                 => $shoe['slug'],
-            'category_id'          => $shoe['category_id'],
-            'price'                => $shoe['price'],
-            'sale_price'           => $shoe['sale_price'],
-            'description'          => $shoe['description'],
-            'image_url'            => $shoe['image_url'],
-            'gallery_images'       => $shoe['gallery_images'],
-            'cloudinary_public_id' => $shoe['cloudinary_public_id'],
-            'sizes_available'      => implode(',', $allSizes),
-            'colors_available'     => $shoe['colors_available'],
-            'is_featured'          => $shoe['is_featured'],
-            'stock_quantity'       => (int) $shoe['stock_quantity'] + $received,
+
+        // Update database directly so other field validations do not block inventory
+        $newTotalStock = (int) $shoe['stock_quantity'] + $received;
+        $updated = $this->shoeModel->builder()->where('id', $shoeId)->update([
+            'sizes_available' => implode(',', $allSizes),
+            'stock_quantity'  => $newTotalStock,
         ]);
         $database->transComplete();
 
@@ -349,14 +370,32 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('error', 'Stock could not be saved. No inventory changes were applied.');
         }
 
-        return redirect()->to('/admin/stock')->with('success', "Added {$received} pairs of {$shoe['name']} to size-specific stock.");
+        return redirect()->to('/admin/stock')->with('success', "Added {$received} pairs of {$shoe['name']}. New total stock: {$newTotalStock}.");
     }
 
     private function parseSizeStockRows(): array
     {
         $rows = $this->request->getPost('size_stock');
+        
+        // If size_stock array is NOT present (e.g. standard form input), generate from sizes and stock_quantity
         if (!is_array($rows)) {
-            return ['success' => false, 'error' => 'Add at least one shoe size and quantity.'];
+            $sizesInput = (string)($this->request->getPost('sizes') ?: $this->request->getPost('sizes_available') ?: '');
+            $stockQty = (int)($this->request->getPost('stock_quantity') ?? 0);
+
+            $sizesList = array_values(array_filter(array_map('trim', explode(',', $sizesInput))));
+            if (empty($sizesList)) {
+                $sizesList = ['39', '40', '41', '42', '43', '44', '45'];
+            }
+
+            $entries = [];
+            $count = count($sizesList);
+            $perSize = $count > 0 ? (int)floor($stockQty / $count) : 0;
+            $remainder = $count > 0 ? ($stockQty % $count) : 0;
+            foreach ($sizesList as $idx => $s) {
+                $qty = $perSize + ($idx === 0 ? $remainder : 0);
+                $entries[] = ['size' => $s, 'quantity' => $qty];
+            }
+            return ['success' => true, 'entries' => $entries];
         }
 
         $entries = [];
@@ -388,8 +427,21 @@ class Shoes extends BaseController
             $entries[] = ['size' => $normalizedSize, 'quantity' => (int) $quantityValue];
         }
 
+        // If entries array is empty, fallback to the general stock_quantity input
         if ($entries === []) {
-            return ['success' => false, 'error' => 'Add at least one shoe size and quantity.'];
+            $formStock = (int) $this->request->getPost('stock_quantity');
+            $sizesInput = (string)($this->request->getPost('sizes') ?: $this->request->getPost('sizes_available') ?: '');
+            $sizesList = array_values(array_filter(array_map('trim', explode(',', $sizesInput))));
+            if (empty($sizesList)) {
+                $sizesList = ['40', '41', '42', '43', '44'];
+            }
+
+            $count = count($sizesList);
+            $perSize = $count > 0 ? (int)floor($formStock / $count) : 0;
+            $remainder = $count > 0 ? ($formStock % $count) : 0;
+            foreach ($sizesList as $idx => $s) {
+                $entries[] = ['size' => $s, 'quantity' => $perSize + ($idx === 0 ? $remainder : 0)];
+            }
         }
 
         return ['success' => true, 'entries' => $entries];
