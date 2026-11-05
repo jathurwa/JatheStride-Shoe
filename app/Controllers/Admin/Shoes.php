@@ -70,15 +70,13 @@ class Shoes extends BaseController
 
     /**
      * Store New Shoe
-     * Supports BOTH machine file upload and direct image URL link,
-     * and guarantees stock is saved accurately.
      */
     public function create()
     {
         $rules = [
             'name'             => 'required|min_length[3]|max_length[255]',
             'category_id'      => 'required|is_natural_no_zero',
-            'price'            => 'required|decimal|greater_than[0]',
+            'price'            => 'required|numeric|greater_than[0]',
             'description'      => 'required|min_length[10]',
             'colors_available' => 'permit_empty|max_length[255]',
         ];
@@ -92,25 +90,22 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('error', $sizeStockResult['error']);
         }
 
-        // Handle Main Image: Supports BOTH Machine File Upload AND Direct Image Link URL
+        // Handle Image: Supports BOTH Machine File Upload AND Direct Image Link URL
         $imageFile = $this->request->getFile('shoe_image');
         $imageUrlDirect = trim((string)$this->request->getPost('image_url_direct'));
         $imageUrl = null;
         $cloudinaryPublicId = null;
 
-        // 1. If direct image link was supplied, pre-fill it
         if (!empty($imageUrlDirect)) {
             $imageUrl = $imageUrlDirect;
         }
 
-        // 2. If a file was selected from machine/PC, attempt upload
         if ($imageFile && $imageFile->isValid() && !$imageFile->hasMoved()) {
             $uploadResult = $this->uploadService->upload($imageFile, 'shoes');
             if ($uploadResult['success']) {
                 $imageUrl = $uploadResult['url'];
                 $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
             } else {
-                // If machine upload fails, fall back to direct URL without crashing
                 if (empty($imageUrl)) {
                     return redirect()->back()->withInput()->with('error', $uploadResult['error']);
                 }
@@ -126,18 +121,15 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('error', $galleryResult['error']);
         }
 
-        // Generate URL-friendly slug
         $name = $this->request->getPost('name');
         $slug = url_title($name, '-', true) . '-' . substr(md5(uniqid()), 0, 5);
 
-        // Calculate Stock: Use sum of size entries if positive, or fallback to the form's stock_quantity input
         $formStock = (int) $this->request->getPost('stock_quantity');
         $sizeStock = $sizeStockResult['entries'] ?? [];
         $totalStock = !empty($sizeStock) ? array_sum(array_column($sizeStock, 'quantity')) : 0;
 
         if ($totalStock === 0 && $formStock > 0) {
             $totalStock = $formStock;
-            // Distribute stock across the sizes so size table also has quantities
             $count = count($sizeStock);
             if ($count > 0) {
                 $perSize = (int) floor($formStock / $count);
@@ -178,7 +170,10 @@ class Shoes extends BaseController
         $database->transComplete();
 
         if (!$shoeId || !$database->transStatus()) {
-            return redirect()->back()->withInput()->with('errors', $this->shoeModel->errors());
+            $modelErrors = $this->shoeModel->errors();
+            $dbError = $database->error();
+            $msg = !empty($modelErrors) ? implode(', ', $modelErrors) : ($dbError['message'] ?? 'Database transaction error');
+            return redirect()->back()->withInput()->with('error', 'Shoe could not be saved: ' . $msg);
         }
 
         return redirect()->to('/admin')->with('success', "Shoe '{$name}' created with {$totalStock} pairs in stock.");
@@ -214,7 +209,7 @@ class Shoes extends BaseController
         $rules = [
             'name'             => 'required|min_length[3]|max_length[255]',
             'category_id'      => 'required|is_natural_no_zero',
-            'price'            => 'required|decimal|greater_than[0]',
+            'price'            => 'required|numeric|greater_than[0]',
             'description'      => 'required|min_length[10]',
             'colors_available' => 'permit_empty|max_length[255]',
         ];
@@ -241,11 +236,6 @@ class Shoes extends BaseController
             }
         }
 
-        $unallocatedStock = max(0, (int) $shoe['stock_quantity'] - array_sum($currentQuantities));
-        if ($removedSizes !== [] && $unallocatedStock > 0) {
-            return redirect()->back()->withInput()->with('error', 'Sizes cannot be removed while older stock is still unallocated by size.');
-        }
-
         $newSizeEntries = [];
         foreach (array_diff($updatedSizes, $currentSizes) as $newSize) {
             $newSizeEntries[] = ['size' => $newSize, 'quantity' => 0];
@@ -255,12 +245,10 @@ class Shoes extends BaseController
         $cloudinaryPublicId = $shoe['cloudinary_public_id'];
         $imageUrlDirect = trim((string)$this->request->getPost('image_url_direct'));
 
-        // If direct image URL provided, update it
         if (!empty($imageUrlDirect)) {
             $imageUrl = $imageUrlDirect;
         }
 
-        // Check if a replacement file was uploaded from machine
         $imageFile = $this->request->getFile('shoe_image');
         if ($imageFile && $imageFile->isValid() && !$imageFile->hasMoved()) {
             $uploadResult = $this->uploadService->upload($imageFile, 'shoes');
@@ -277,7 +265,6 @@ class Shoes extends BaseController
             return redirect()->back()->withInput()->with('error', $galleryResult['error']);
         }
 
-        // Handle updated stock quantity from edit form if provided
         $stockQty = $this->request->getPost('stock_quantity');
         $finalStock = ($stockQty !== null && $stockQty !== '') ? (int)$stockQty : (int)$shoe['stock_quantity'];
 
@@ -308,7 +295,10 @@ class Shoes extends BaseController
         $database->transComplete();
 
         if (!$updated || !$database->transStatus()) {
-            return redirect()->back()->withInput()->with('error', 'Shoe details could not be saved.');
+            $modelErrors = $this->shoeModel->errors();
+            $dbError = $database->error();
+            $msg = !empty($modelErrors) ? implode(', ', $modelErrors) : ($dbError['message'] ?? 'Database error on update');
+            return redirect()->back()->withInput()->with('error', 'Shoe details could not be saved: ' . $msg);
         }
 
         return redirect()->to('/admin')->with('success', "Shoe '{$updateData['name']}' updated successfully.");
@@ -358,7 +348,6 @@ class Shoes extends BaseController
         $database->transStart();
         $this->sizeStockModel->addQuantities($shoeId, $entries);
 
-        // Update database directly so other field validations do not block inventory
         $newTotalStock = (int) $shoe['stock_quantity'] + $received;
         $updated = $this->shoeModel->builder()->where('id', $shoeId)->update([
             'sizes_available' => implode(',', $allSizes),
@@ -377,7 +366,6 @@ class Shoes extends BaseController
     {
         $rows = $this->request->getPost('size_stock');
         
-        // If size_stock array is NOT present (e.g. standard form input), generate from sizes and stock_quantity
         if (!is_array($rows)) {
             $sizesInput = (string)($this->request->getPost('sizes') ?: $this->request->getPost('sizes_available') ?: '');
             $stockQty = (int)($this->request->getPost('stock_quantity') ?? 0);
@@ -427,7 +415,6 @@ class Shoes extends BaseController
             $entries[] = ['size' => $normalizedSize, 'quantity' => (int) $quantityValue];
         }
 
-        // If entries array is empty, fallback to the general stock_quantity input
         if ($entries === []) {
             $formStock = (int) $this->request->getPost('stock_quantity');
             $sizesInput = (string)($this->request->getPost('sizes') ?: $this->request->getPost('sizes_available') ?: '');
@@ -506,7 +493,6 @@ class Shoes extends BaseController
             if ($uploadResult['success']) {
                 $images[] = $uploadResult['url'];
             } else {
-                // If cloud upload fails but gallery URLs were provided, do not abort
                 if (empty($images)) {
                     return ['success' => false, 'error' => 'Gallery image upload failed: ' . $uploadResult['error']];
                 }
