@@ -40,12 +40,15 @@ $routes->group('admin', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'Admin\Shoes::index');
     $routes->get('shoes', 'Admin\Shoes::index');
     $routes->get('shoes/new', 'Admin\Shoes::new');
-    $routes->get('shoes/create', 'Admin\Shoes::new');
     $routes->post('shoes/create', 'Admin\Shoes::create');
-    $routes->get('stock', 'Admin\Shoes::stock');
-    $routes->post('stock/receive', 'Admin\Shoes::receiveStock');
     $routes->get('shoes/edit/(:num)', 'Admin\Shoes::edit/$1');
     $routes->post('shoes/update/(:num)', 'Admin\Shoes::update/$1');
     $routes->post('shoes/delete/(:num)', 'Admin\Shoes::delete/$1');
-    $routes->get('shoes/delete/(:num)', 'Admin\Shoes::delete/$1'); // Fallback helper
+    $routes->get('shoes/delete/(:num)', 'Admin\Shoes::delete/$1');
+
+    // Stock Management Routes
+    $routes->get('stock', 'Admin\Shoes::stock');
+    $routes->post('stock', 'Admin\Shoes::receiveStock');
+    $routes->get('shoes/stock', 'Admin\Shoes::stock');
+    $routes->post('shoes/stock', 'Admin\Shoes::receiveStock');
 });
