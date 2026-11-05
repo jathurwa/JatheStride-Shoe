@@ -22,30 +22,38 @@ class ImageUploadService
     public function upload(UploadedFile $file, string $folder = 'shoes'): array
     {
         if (!$file->isValid()) {
-            return ['success' => false, 'url' => null, 'error' => $file->getErrorString()];
+            return [
+                'success' => false,
+                'url'     => null,
+                'error'   => $file->getErrorString(),
+            ];
         }
 
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
         if (!in_array($file->getClientMimeType(), $allowedMimes, true)) {
-            return ['success' => false, 'url' => null, 'error' => 'Invalid file format. Only JPG, PNG, WEBP, and AVIF allowed.'];
+            return [
+                'success' => false,
+                'url'     => null,
+                'error'   => 'Only JPG, PNG, WEBP, and AVIF images are allowed.',
+            ];
         }
 
-        // 1. Cloudinary upload (works on Vercel Serverless)
+        // 1. If Cloudinary credentials exist, stream to Cloudinary (Works on Vercel)
         if (!empty($this->cloudName)) {
             return $this->uploadToCloudinary($file, $folder);
         }
 
-        // 2. Local uploads if running locally on PC with writable disk (XAMPP / Spark)
+        // 2. If running locally on PC, save to public/uploads
         $localResult = $this->uploadToLocalDisk($file, $folder);
         if ($localResult['success']) {
             return $localResult;
         }
 
-        // 3. Clear message on Vercel when Cloudinary keys haven't been added yet
+        // 3. Inform the admin how to proceed on Vercel
         return [
             'success' => false,
             'url'     => null,
-            'error'   => 'Vercel filesystem is read-only. To upload files directly from your PC on Vercel, add your free CLOUDINARY_CLOUD_NAME in Vercel Settings > Environment Variables, OR paste an image link in the "Direct Image URL" field.',
+            'error'   => 'Serverless disk is read-only. Either add CLOUDINARY_CLOUD_NAME to Vercel Environment Variables to upload from PC, or paste an image link in the Direct Image URL field.',
         ];
     }
 
@@ -107,14 +115,15 @@ class ImageUploadService
             return [
                 'success'   => true,
                 'url'       => $json['secure_url'],
-                'public_id' => $json['public_id'] ?? null
+                'public_id' => $json['public_id'] ?? null,
+                'error'     => null,
             ];
         }
 
         return [
             'success' => false,
             'url'     => null,
-            'error'   => $json['error']['message'] ?? 'Cloudinary upload failed.'
+            'error'   => $json['error']['message'] ?? 'Cloudinary upload failed.',
         ];
     }
 }
