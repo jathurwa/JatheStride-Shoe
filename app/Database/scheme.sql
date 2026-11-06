@@ -3,6 +3,9 @@
 -- Compatible with TiDB Serverless, MySQL 8.0+, MariaDB, PlanetScale, Aiven
 -- ==============================================================================
 
+CREATE DATABASE IF NOT EXISTS `test`;
+USE `test`;
+
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ------------------------------------------------------------------------------
