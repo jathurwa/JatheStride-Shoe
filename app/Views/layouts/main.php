@@ -30,6 +30,7 @@
                 <a href="<?= base_url('category/boots') ?>" class="hover:text-stone-950 transition-colors">Boots</a>
                 <a href="<?= base_url('category/formal') ?>" class="hover:text-stone-950 transition-colors">Formal</a>
                 <a href="<?= base_url('category/casual') ?>" class="hover:text-stone-950 transition-colors">Casual</a>
+                <a href="<?= base_url('category/kids') ?>" class="hover:text-stone-950 transition-colors">Kids</a>
             </nav>
 
             <div class="flex items-center gap-3">

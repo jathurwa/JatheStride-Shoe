@@ -22,6 +22,11 @@ $routes->setAutoRoute(false);
 $routes->get('/', 'Home::index');
 $routes->get('category/(:segment)', 'Products::category/$1');
 $routes->get('product/(:segment)', 'Products::detail/$1');
+$routes->get('products/(:segment)', 'Products::detail/$1');
+$routes->get('shoes/(:segment)', 'Products::detail/$1');
+$routes->get('shoe/(:segment)', 'Products::detail/$1');
+$routes->get('products', 'Products::index');
+$routes->get('shoes', 'Products::index');
 $routes->get('search', 'Products::search');
 $routes->get('cart', 'Products::cart');
 $routes->get('checkout', 'Products::checkout');
@@ -47,9 +52,11 @@ $routes->group('admin', ['filter' => 'auth'], static function ($routes) {
     $routes->post('shoes/delete/(:num)', 'Admin\Shoes::delete/$1');
     $routes->get('shoes/delete/(:num)', 'Admin\Shoes::delete/$1');
 
-    // Stock Management Routes
+    // Stock Management Routes (supports both /admin/stock and /admin/stock/receive)
     $routes->get('stock', 'Admin\Shoes::stock');
     $routes->post('stock', 'Admin\Shoes::receiveStock');
+    $routes->post('stock/receive', 'Admin\Shoes::receiveStock');
     $routes->get('shoes/stock', 'Admin\Shoes::stock');
     $routes->post('shoes/stock', 'Admin\Shoes::receiveStock');
+    $routes->post('shoes/stock/receive', 'Admin\Shoes::receiveStock');
 });

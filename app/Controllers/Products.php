@@ -15,9 +15,14 @@ class Products extends BaseController
 
     public function __construct()
     {
-        $this->shoeModel     = new ShoeModel();
-        $this->categoryModel = new CategoryModel();
+        $this->shoeModel      = new ShoeModel();
+        $this->categoryModel  = new CategoryModel();
         $this->sizeStockModel = new ShoeSizeStockModel();
+    }
+
+    public function index()
+    {
+        return redirect()->to('/');
     }
 
     /**
@@ -25,16 +30,20 @@ class Products extends BaseController
      */
     public function category(string $slug)
     {
+        if ($slug === 'all') {
+            return redirect()->to('/');
+        }
+
         $category = $this->categoryModel->where('slug', $slug)->first();
         if (!$category) {
             throw PageNotFoundException::forPageNotFound("Category '{$slug}' not found.");
         }
 
-        $shoes = $this->shoeModel->getShoesWithCategory($category['id']);
+        $shoes = $this->shoeModel->getShoesWithCategory($category['id'], 100);
         $allCategories = $this->categoryModel->findAll();
 
         return view('storefront/home', [
-            'title'            => $category['name'] . ' Shoes | ApexStride',
+            'title'            => $category['name'] . ' Shoes | JatheStride',
             'shoes'            => $shoes,
             'categories'       => $allCategories,
             'currentCategory'  => $category,
@@ -58,7 +67,7 @@ class Products extends BaseController
             ->findAll(4);
 
         return view('storefront/detail', [
-            'title'        => $shoe['name'] . ' | ApexStride',
+            'title'        => $shoe['name'] . ' | JatheStride',
             'shoe'         => $shoe,
             'sizeStock'    => $this->sizeStockModel->getQuantitiesForShoe((int) $shoe['id']),
             'relatedShoes' => $relatedShoes,
@@ -68,6 +77,7 @@ class Products extends BaseController
     public function search()
     {
         $query = trim((string) $this->request->getGet('q'));
+
         $builder = $this->shoeModel
             ->select('shoes.*, categories.name as category_name, categories.slug as category_slug')
             ->join('categories', 'categories.id = shoes.category_id', 'left');
@@ -96,11 +106,11 @@ class Products extends BaseController
 
     public function cart()
     {
-        return view('storefront/cart', ['title' => 'Your Bag | ApexStride']);
+        return view('storefront/cart', ['title' => 'Your Bag | JatheStride']);
     }
 
     public function checkout()
     {
-        return view('storefront/checkout', ['title' => 'Checkout | ApexStride']);
+        return view('storefront/checkout', ['title' => 'Checkout | JatheStride']);
     }
 }

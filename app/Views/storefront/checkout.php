@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
             `Total: KSH ${total.toFixed(2)}`
         ].join('\n');
         const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappPhone}&text=${encodeURIComponent(message)}`;
+        try { localStorage.removeItem('cart'); } catch (e) {}
         window.location.assign(whatsappUrl);
     });
 });

@@ -344,6 +344,7 @@ class Shoes extends BaseController
     {
         $shoeId = (int) $this->request->getPost('shoe_id');
         $shoe = $this->shoeModel->find($shoeId);
+
         if (!$shoe) {
             return redirect()->back()->withInput()->with('error', 'Select a valid shoe before receiving stock.');
         }
@@ -357,9 +358,36 @@ class Shoes extends BaseController
             $stockResult['entries'],
             static fn($entry) => $entry['quantity'] > 0
         ));
-        
-        if ($entries === []) {
-            return redirect()->back()->withInput()->with('error', 'Enter at least one quantity greater than zero.');
+
+        // Handle Optional Image Update during Stock Receipt (Machine file or Direct Link)
+        $imageUrl = null;
+        $cloudinaryPublicId = null;
+
+        $imageUrlDirect = trim((string)$this->request->getPost('image_url_direct'));
+        if (!empty($imageUrlDirect)) {
+            if (!$this->isHttpUrl($imageUrlDirect)) {
+                return redirect()->back()->withInput()->with('error', 'Enter a valid HTTP or HTTPS image URL.');
+            }
+            $imageUrl = $imageUrlDirect;
+        }
+
+        $imageFile = $this->request->getFile('shoe_image');
+        if ($imageFile && $imageFile->getError() !== UPLOAD_ERR_NO_FILE) {
+            if (!$imageFile->isValid() || $imageFile->hasMoved()) {
+                return redirect()->back()->withInput()->with('error', $imageFile->getErrorString());
+            }
+
+            $uploadResult = $this->uploadService->upload($imageFile, 'shoes');
+            if ($uploadResult['success']) {
+                $imageUrl = $uploadResult['url'];
+                $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
+            } else {
+                return redirect()->back()->withInput()->with('error', $uploadResult['error']);
+            }
+        }
+
+        if ($entries === [] && empty($imageUrl)) {
+            return redirect()->back()->withInput()->with('error', 'Enter at least one size quantity greater than zero, or provide an image update.');
         }
 
         $existingSizes = array_filter(array_map('trim', explode(',', $shoe['sizes_available'] ?? '')));
@@ -368,20 +396,37 @@ class Shoes extends BaseController
 
         $database = db_connect();
         $database->transStart();
-        $this->sizeStockModel->addQuantities($shoeId, $entries);
+
+        if (!empty($entries)) {
+            $this->sizeStockModel->addQuantities($shoeId, $entries);
+        }
 
         $newTotalStock = (int) $shoe['stock_quantity'] + $received;
-        $updated = $this->shoeModel->builder()->where('id', $shoeId)->update([
+        $updateFields = [
             'sizes_available' => implode(',', $allSizes),
             'stock_quantity'  => $newTotalStock,
-        ]);
+        ];
+
+        if (!empty($imageUrl)) {
+            $updateFields['image_url'] = $imageUrl;
+            if ($cloudinaryPublicId) {
+                $updateFields['cloudinary_public_id'] = $cloudinaryPublicId;
+            }
+        }
+
+        $updated = $this->shoeModel->builder()->where('id', $shoeId)->update($updateFields);
         $database->transComplete();
 
         if (!$updated || !$database->transStatus()) {
             return redirect()->back()->withInput()->with('error', 'Stock could not be saved. No inventory changes were applied.');
         }
 
-        return redirect()->to('/admin/stock')->with('success', "Added {$received} pairs of {$shoe['name']}. New total stock: {$newTotalStock}.");
+        $msg = "Added {$received} pairs of {$shoe['name']}. New total stock: {$newTotalStock}.";
+        if (!empty($imageUrl)) {
+            $msg .= " Product image was updated.";
+        }
+
+        return redirect()->to('/admin/stock')->with('success', $msg);
     }
 
     private function parseSizeStockRows(): array

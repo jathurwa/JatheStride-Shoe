@@ -182,6 +182,42 @@ $gallerySlides = array_values(array_unique(array_merge(
             </div>
         </div>
     </div>
+
+    <!-- Related Footwear Collection -->
+    <?php if (!empty($relatedShoes)): ?>
+        <div class="mt-16 border-t border-stone-200 pt-10">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-black text-stone-900 tracking-tight">You Might Also Like</h2>
+                    <p class="text-xs text-stone-500 mt-0.5">Explore similar styles in <?= esc($shoe['category_name'] ?? 'Footwear') ?></p>
+                </div>
+                <a href="<?= base_url('category/' . esc($shoe['category_slug'] ?? '')) ?>" class="text-xs font-bold text-amber-600 hover:text-amber-500">
+                    View More &rarr;
+                </a>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                <?php foreach ($relatedShoes as $rel): ?>
+                    <a href="<?= base_url('product/' . ($rel['slug'] ?: $rel['id'])) ?>" class="group block bg-white rounded-2xl border border-stone-200 overflow-hidden hover:border-amber-500/50 hover:shadow-md transition-all">
+                        <div class="aspect-square bg-stone-100 p-4 flex items-center justify-center relative overflow-hidden">
+                            <img src="<?= esc($rel['image_url']) ?>" alt="<?= esc($rel['name']) ?>" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+                            <?php if (!empty($rel['sale_price'])): ?>
+                                <span class="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-black bg-rose-600 text-white rounded-md uppercase">Sale</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="text-xs font-bold text-stone-900 truncate group-hover:text-amber-600 transition-colors"><?= esc($rel['name']) ?></h3>
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="text-xs font-black text-stone-900">KSH <?= number_format(!empty($rel['sale_price']) ? (float)$rel['sale_price'] : (float)$rel['price'], 2) ?></span>
+                                <?php if (!empty($rel['sale_price'])): ?>
+                                    <span class="text-[10px] text-stone-400 line-through">KSH <?= number_format((float)$rel['price'], 2) ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?= $this->endSection() ?>
