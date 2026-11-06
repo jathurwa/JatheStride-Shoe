@@ -136,6 +136,7 @@ class Shoes extends BaseController
 
         $formStock = (int) $this->request->getPost('stock_quantity');
         $sizeStock = $sizeStockResult['entries'] ?? [];
+        usort($sizeStock, static fn($a, $b) => (float)($a['size'] ?? 0) <=> (float)($b['size'] ?? 0));
         $totalStock = !empty($sizeStock) ? array_sum(array_column($sizeStock, 'quantity')) : 0;
 
         if ($totalStock === 0 && $formStock > 0) {
@@ -450,7 +451,8 @@ class Shoes extends BaseController
                 $qty = $perSize + ($idx === 0 ? $remainder : 0);
                 $entries[] = ['size' => $s, 'quantity' => $qty];
             }
-            return ['success' => true, 'entries' => $entries];
+            usort($entries, static fn($a, $b) => (float)($a['size'] ?? 0) <=> (float)($b['size'] ?? 0));
+        return ['success' => true, 'entries' => $entries];
         }
 
         $entries = [];
@@ -498,6 +500,7 @@ class Shoes extends BaseController
             }
         }
 
+        usort($entries, static fn($a, $b) => (float)($a['size'] ?? 0) <=> (float)($b['size'] ?? 0));
         return ['success' => true, 'entries' => $entries];
     }
 
@@ -518,8 +521,10 @@ class Shoes extends BaseController
         }
 
         if (count($normalizedSizes) !== count(array_unique($normalizedSizes))) {
-            return ['success' => false, 'error' => 'Each UK shoe size can only be listed once.'];
+            return ['success' => false, 'error' => 'Each EU shoe size can only be listed once.'];
         }
+
+        usort($normalizedSizes, static fn($a, $b) => (float)$a <=> (float)$b);
 
         return ['success' => true, 'sizes' => $normalizedSizes];
     }
