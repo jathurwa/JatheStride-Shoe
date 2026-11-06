@@ -30,30 +30,36 @@ class ImageUploadService
         }
 
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'];
-        if (!in_array($file->getClientMimeType(), $allowedMimes, true)) {
+        $mimeType = $file->getMimeType();
+        if (!in_array($mimeType, $allowedMimes, true)) {
             return [
                 'success' => false,
                 'url'     => null,
-                'error'   => 'Only JPG, PNG, WEBP, and AVIF images are allowed.',
+                'error'   => 'Only JPG, PNG, WEBP, AVIF, and GIF images are allowed.',
             ];
         }
 
-        // 1. If Cloudinary credentials exist, stream to Cloudinary (Works on Vercel)
         if (!empty($this->cloudName)) {
             return $this->uploadToCloudinary($file, $folder);
         }
 
-        // 2. If running locally on PC, save to public/uploads
+        if (getenv('VERCEL') || getenv('VERCEL_ENV')) {
+            return [
+                'success' => false,
+                'url'     => null,
+                'error'   => 'Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME and either CLOUDINARY_API_KEY plus CLOUDINARY_API_SECRET, or CLOUDINARY_UPLOAD_PRESET, in Vercel.',
+            ];
+        }
+
         $localResult = $this->uploadToLocalDisk($file, $folder);
         if ($localResult['success']) {
             return $localResult;
         }
 
-        // 3. Inform the admin how to proceed on Vercel
         return [
             'success' => false,
             'url'     => null,
-            'error'   => 'Serverless disk is read-only. Either add CLOUDINARY_CLOUD_NAME to Vercel Environment Variables to upload from PC, or paste an image link in the Direct Image URL field.',
+            'error'   => $localResult['error'] . ' Configure Cloudinary or provide a direct image URL.',
         ];
     }
 
@@ -83,30 +89,45 @@ class ImageUploadService
 
     protected function uploadToCloudinary(UploadedFile $file, string $folder): array
     {
+        if (!function_exists('curl_init') || !class_exists(\CURLFile::class)) {
+            return [
+                'success' => false,
+                'url'     => null,
+                'error'   => 'The server is missing the cURL extension required for Cloudinary uploads.',
+            ];
+        }
+
         $apiUrl = "https://api.cloudinary.com/v1_1/{$this->cloudName}/image/upload";
         $tempPath = $file->getTempName();
         $timestamp = time();
 
-        $postFields = [
-            'timestamp' => $timestamp,
-            'folder'    => $folder,
-        ];
-
         if (!empty($this->apiSecret) && !empty($this->apiKey)) {
+            $postFields = [
+                'timestamp' => $timestamp,
+                'folder'    => $folder,
+            ];
             $postFields['api_key']   = $this->apiKey;
             $postFields['signature'] = sha1("folder={$folder}&timestamp={$timestamp}" . $this->apiSecret);
         } elseif (!empty($this->uploadPreset)) {
-            $postFields['upload_preset'] = $this->uploadPreset;
+            $postFields = ['upload_preset' => $this->uploadPreset];
+        } else {
+            return [
+                'success' => false,
+                'url'     => null,
+                'error'   => 'Cloudinary credentials are incomplete. Configure both CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET, or set CLOUDINARY_UPLOAD_PRESET.',
+            ];
         }
 
-        $postFields['file'] = new \CURLFile($tempPath, $file->getClientMimeType(), $file->getClientName());
+        $postFields['file'] = new \CURLFile($tempPath, $file->getMimeType(), $file->getClientName());
 
         $ch = curl_init($apiUrl);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
         $response = curl_exec($ch);
+        $curlError = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
@@ -123,7 +144,7 @@ class ImageUploadService
         return [
             'success' => false,
             'url'     => null,
-            'error'   => $json['error']['message'] ?? 'Cloudinary upload failed.',
+            'error'   => $json['error']['message'] ?? ($curlError !== '' ? 'Cloudinary request failed: ' . $curlError : 'Cloudinary upload failed.'),
         ];
     }
 }

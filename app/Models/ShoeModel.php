@@ -42,7 +42,7 @@ class ShoeModel extends Model
         'name'           => 'required|min_length[3]|max_length[255]',
         'category_id'    => 'required|is_natural_no_zero',
         'price'          => 'required|numeric|greater_than[0]',
-        'sale_price'     => 'permit_empty|numeric',
+        'sale_price'     => 'permit_empty|numeric|greater_than[0]',
         'description'    => 'required|min_length[10]',
         'image_url'      => 'required',
         'stock_quantity' => 'permit_empty|integer|greater_than_equal_to[0]',

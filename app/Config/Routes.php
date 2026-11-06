@@ -40,6 +40,7 @@ $routes->group('admin', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'Admin\Shoes::index');
     $routes->get('shoes', 'Admin\Shoes::index');
     $routes->get('shoes/new', 'Admin\Shoes::new');
+    $routes->get('shoes/create', 'Admin\Shoes::new');
     $routes->post('shoes/create', 'Admin\Shoes::create');
     $routes->get('shoes/edit/(:num)', 'Admin\Shoes::edit/$1');
     $routes->post('shoes/update/(:num)', 'Admin\Shoes::update/$1');

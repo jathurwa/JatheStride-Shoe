@@ -41,6 +41,11 @@
         <div>
             <h2 class="text-2xl font-black tracking-tight text-stone-900">Footwear Catalog</h2>
             <p class="text-xs text-stone-500 mt-1">Filter by silhouette, performance type, and occasions.</p>
+            <form action="<?= base_url('search') ?>" method="get" class="mt-4 flex max-w-md gap-2">
+                <label for="shoeSearch" class="sr-only">Search shoes</label>
+                <input id="shoeSearch" type="search" name="q" value="<?= esc($searchTerm ?? '') ?>" placeholder="Search shoes..." class="min-w-0 flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm focus:border-stone-900 focus:outline-none">
+                <button type="submit" class="rounded-xl bg-stone-900 px-4 py-2 text-xs font-bold text-white hover:bg-amber-600">Search</button>
+            </form>
         </div>
 
         <!-- Filter Pills -->

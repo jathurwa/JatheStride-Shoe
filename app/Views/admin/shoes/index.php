@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/admin') ?>
 
 <?= $this->section('content') ?>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -11,7 +11,7 @@
             <a href="<?= base_url('admin/stock') ?>" class="px-4 py-2 border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold rounded-xl">
                 <i class="fa-solid fa-boxes-stacked mr-1.5" aria-hidden="true"></i>Receive Stock
             </a>
-            <a href="<?= base_url('admin/shoes/create') ?>" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl shadow-sm">
+            <a href="<?= base_url('admin/shoes/new') ?>" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl shadow-sm">
                 + Add New Shoe
             </a>
         </div>

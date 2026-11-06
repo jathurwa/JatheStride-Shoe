@@ -67,7 +67,7 @@ class ShoeSizeStockModel extends Model
         }
 
         $this->where('shoe_id', $shoeId)
-            ->whereNotIn('size', $sizes)
+            ->whereIn('size', $sizes)
             ->delete();
     }
 }

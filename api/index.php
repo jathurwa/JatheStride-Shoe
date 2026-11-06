@@ -3,9 +3,10 @@
  * Vercel Serverless Entry Point for CodeIgniter 4
  */
 
-// Enable full error display and logging for serverless diagnostics
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
+// Keep detailed diagnostics in logs, not in production responses.
+$showErrors = getenv('CI_ENVIRONMENT') === 'development';
+ini_set('display_errors', $showErrors ? '1' : '0');
+ini_set('display_startup_errors', $showErrors ? '1' : '0');
 error_reporting(E_ALL);
 
 // Ensure serverless writable storage is initialized in /tmp
@@ -45,12 +46,18 @@ if (isset($_GET['health']) || isset($_GET['test'])) {
 }
 
 // Global Exception Handler so you never get a blank white page
-set_exception_handler(function (\Throwable $e) {
+set_exception_handler(function (\Throwable $e) use ($showErrors) {
     error_log('[APEXSTRIDE_ERROR] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     if (!headers_sent()) {
         header('HTTP/1.1 500 Internal Server Error');
         header('Content-Type: text/html; charset=utf-8');
     }
+    if (!$showErrors) {
+        echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>JatheStride - Error</title></head><body>';
+        echo '<h1>Something went wrong</h1><p>Please try again shortly.</p></body></html>';
+        exit;
+    }
+
     echo '<!DOCTYPE html><html><head><title>ApexStride - Runtime Diagnostic</title>';
     echo '<style>body{font-family:sans-serif;padding:30px;background:#fff5f5;color:#991b1b;} .box{background:#fff;border:1px solid #fecaca;padding:24px;border-radius:8px;max-width:800px;margin:auto;} h2{margin-top:0;color:#dc2626;} pre{background:#f8fafc;padding:12px;border-radius:6px;overflow-x:auto;color:#334155;font-size:13px;}</style></head><body>';
     echo '<div class="box">';

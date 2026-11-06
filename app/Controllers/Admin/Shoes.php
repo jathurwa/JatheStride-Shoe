@@ -77,12 +77,18 @@ class Shoes extends BaseController
             'name'             => 'required|min_length[3]|max_length[255]',
             'category_id'      => 'required|is_natural_no_zero',
             'price'            => 'required|numeric|greater_than[0]',
+            'sale_price'       => 'permit_empty|numeric|greater_than[0]',
             'description'      => 'required|min_length[10]',
             'colors_available' => 'permit_empty|max_length[255]',
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $salePrice = trim((string) $this->request->getPost('sale_price'));
+        if ($salePrice !== '' && (float) $salePrice >= (float) $this->request->getPost('price')) {
+            return redirect()->back()->withInput()->with('error', 'Sale price must be lower than the regular price.');
         }
 
         $sizeStockResult = $this->parseSizeStockRows();
@@ -97,18 +103,22 @@ class Shoes extends BaseController
         $cloudinaryPublicId = null;
 
         if (!empty($imageUrlDirect)) {
+            if (!$this->isHttpUrl($imageUrlDirect)) {
+                return redirect()->back()->withInput()->with('error', 'Enter a valid HTTP or HTTPS image URL.');
+            }
             $imageUrl = $imageUrlDirect;
         }
 
-        if ($imageFile && $imageFile->isValid() && !$imageFile->hasMoved()) {
+        if ($imageFile && $imageFile->getError() !== UPLOAD_ERR_NO_FILE) {
+            if (!$imageFile->isValid() || $imageFile->hasMoved()) {
+                return redirect()->back()->withInput()->with('error', $imageFile->getErrorString());
+            }
             $uploadResult = $this->uploadService->upload($imageFile, 'shoes');
             if ($uploadResult['success']) {
                 $imageUrl = $uploadResult['url'];
                 $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
             } else {
-                if (empty($imageUrl)) {
-                    return redirect()->back()->withInput()->with('error', $uploadResult['error']);
-                }
+                return redirect()->back()->withInput()->with('error', $uploadResult['error']);
             }
         }
 
@@ -210,12 +220,18 @@ class Shoes extends BaseController
             'name'             => 'required|min_length[3]|max_length[255]',
             'category_id'      => 'required|is_natural_no_zero',
             'price'            => 'required|numeric|greater_than[0]',
+            'sale_price'       => 'permit_empty|numeric|greater_than[0]',
             'description'      => 'required|min_length[10]',
             'colors_available' => 'permit_empty|max_length[255]',
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $salePrice = trim((string) $this->request->getPost('sale_price'));
+        if ($salePrice !== '' && (float) $salePrice >= (float) $this->request->getPost('price')) {
+            return redirect()->back()->withInput()->with('error', 'Sale price must be lower than the regular price.');
         }
 
         $sizeResult = $this->parseAvailableSizes(
@@ -246,16 +262,22 @@ class Shoes extends BaseController
         $imageUrlDirect = trim((string)$this->request->getPost('image_url_direct'));
 
         if (!empty($imageUrlDirect)) {
+            if (!$this->isHttpUrl($imageUrlDirect)) {
+                return redirect()->back()->withInput()->with('error', 'Enter a valid HTTP or HTTPS image URL.');
+            }
             $imageUrl = $imageUrlDirect;
         }
 
         $imageFile = $this->request->getFile('shoe_image');
-        if ($imageFile && $imageFile->isValid() && !$imageFile->hasMoved()) {
+        if ($imageFile && $imageFile->getError() !== UPLOAD_ERR_NO_FILE) {
+            if (!$imageFile->isValid() || $imageFile->hasMoved()) {
+                return redirect()->back()->withInput()->with('error', $imageFile->getErrorString());
+            }
             $uploadResult = $this->uploadService->upload($imageFile, 'shoes');
             if ($uploadResult['success']) {
                 $imageUrl = $uploadResult['url'];
                 $cloudinaryPublicId = $uploadResult['public_id'] ?? null;
-            } elseif (empty($imageUrlDirect)) {
+            } else {
                 return redirect()->back()->withInput()->with('error', $uploadResult['error']);
             }
         }
@@ -461,6 +483,14 @@ class Shoes extends BaseController
     {
         $numericSize = (float) $size;
         return $numericSize === floor($numericSize) ? (string) (int) $numericSize : number_format($numericSize, 1, '.', '');
+    }
+
+    private function isHttpUrl(string $url): bool
+    {
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+
+        return filter_var($url, FILTER_VALIDATE_URL) !== false
+            && in_array($scheme, ['http', 'https'], true);
     }
 
     private function collectGalleryImages(?string $existingImages = null): array

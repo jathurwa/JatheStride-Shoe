@@ -3,6 +3,7 @@
 <?= $this->section('content') ?>
 
 <?php
+$displayPrice = !empty($shoe['sale_price']) ? (float) $shoe['sale_price'] : (float) $shoe['price'];
 $galleryImages = json_decode($shoe['gallery_images'] ?? '[]', true);
 $gallerySlides = array_values(array_unique(array_merge(
     [$shoe['image_url']],
@@ -80,11 +81,11 @@ $gallerySlides = array_values(array_unique(array_merge(
             <!-- Price & Stock -->
             <div class="flex items-baseline gap-4">
                 <span class="text-3xl font-black text-stone-950">
-                    KSH <?= number_format((float)$shoe['price'], 2) ?>
+                    KSH <?= number_format($displayPrice, 2) ?>
                 </span>
                 <?php if (!empty($shoe['sale_price'])): ?>
                     <span class="text-lg text-stone-400 line-through">
-                        KSH <?= number_format((float)$shoe['sale_price'], 2) ?>
+                        KSH <?= number_format((float)$shoe['price'], 2) ?>
                     </span>
                 <?php endif; ?>
 
@@ -235,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function(){
             const shoe = {
                 id: <?= (int)$shoe['id'] ?>,
                 name: <?= json_encode($shoe['name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
-                price: <?= (float)$shoe['price'] ?>,
+                price: <?= $displayPrice ?>,
                 image_url: gallerySlides[activeGalleryIndex] || <?= json_encode($shoe['image_url'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>,
                 size: size,
                 qty: 1,

@@ -65,6 +65,35 @@ class Products extends BaseController
         ]);
     }
 
+    public function search()
+    {
+        $query = trim((string) $this->request->getGet('q'));
+        $builder = $this->shoeModel
+            ->select('shoes.*, categories.name as category_name, categories.slug as category_slug')
+            ->join('categories', 'categories.id = shoes.category_id', 'left');
+
+        if ($query !== '') {
+            $builder->groupStart()
+                ->like('shoes.name', $query)
+                ->orLike('shoes.description', $query)
+                ->groupEnd();
+        }
+
+        $shoes = $builder
+            ->orderBy('shoes.is_featured', 'DESC')
+            ->orderBy('shoes.created_at', 'DESC')
+            ->findAll(100);
+
+        return view('storefront/home', [
+            'title'            => $query === '' ? 'Search Shoes | JatheStride' : 'Search: ' . $query . ' | JatheStride',
+            'shoes'            => $shoes,
+            'categories'       => $this->categoryModel->findAll(),
+            'selectedCategory' => null,
+            'searchTerm'       => $query,
+            'featuredShoes'    => array_filter($shoes, static fn($shoe) => !empty($shoe['is_featured'])),
+        ]);
+    }
+
     public function cart()
     {
         return view('storefront/cart', ['title' => 'Your Bag | ApexStride']);

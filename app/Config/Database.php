@@ -23,16 +23,17 @@ class Database extends Config
 
         $username = getenv('DB_USER') ?: getenv('DB_USERNAME') ?: getenv('database.default.username') ?: 'root';
         $password = getenv('DB_PASSWORD') ?: getenv('DB_PASS') ?: getenv('database.default.password') ?: '';
-        $port     = (int)(getenv('DB_PORT') ?: getenv('database.default.port') ?: 4000);
         $driver   = getenv('DB_DRIVER') ?: getenv('database.default.DBDriver') ?: 'MySQLi';
 
         // Auto-enable SSL for TiDB Cloud & modern cloud databases
-        $dbSsl = getenv('DB_SSL');
         $isCloudHost = !empty($host) && (
             strpos($host, 'tidbcloud.com') !== false ||
             strpos($host, 'aivencloud.com') !== false ||
             strpos($host, 'planetscale.com') !== false
         );
+        $defaultPort = strpos($host, 'tidbcloud.com') !== false ? 4000 : 3306;
+        $port = (int)(getenv('DB_PORT') ?: getenv('database.default.port') ?: $defaultPort);
+        $dbSsl = getenv('DB_SSL');
 
         if ($dbSsl === 'false' || $dbSsl === '0') {
             $sslConfig = false;

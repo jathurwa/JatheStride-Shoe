@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
     })[character]);
     document.getElementById('checkoutItems').innerHTML = cart.map((item) => `
         <div class="flex justify-between gap-3 py-3 text-xs">
-            <span class="text-stone-600">${Number(item.qty) || 1} × ${escapeHtml(item.name || 'Shoe')} <span class="text-stone-400">(US ${escapeHtml(item.size || '')})</span></span>
+            <span class="text-stone-600">${Number(item.qty) || 1} × ${escapeHtml(item.name || 'Shoe')} <span class="text-stone-400">(EU ${escapeHtml(item.size || '')})</span></span>
             <span class="font-bold text-stone-900">KSH ${((Number(item.price) || 0) * (Number(item.qty) || 1)).toFixed(2)}</span>
         </div>
     `).join('');
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const orderLines = cart.map((item) => {
             const quantity = Number(item.qty) || 1;
             const price = Number(item.price) || 0;
-            return `- ${item.name} (US ${item.size}) x${quantity} - KSH ${(price * quantity).toFixed(2)}`;
+            return `- ${item.name} (EU ${item.size}) x${quantity} - KSH ${(price * quantity).toFixed(2)}`;
         });
         const message = [
             'Hello, I would like to complete this order:',
