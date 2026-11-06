@@ -67,7 +67,8 @@ ALTER TABLE `shoes` ADD COLUMN IF NOT EXISTS `colors_available` VARCHAR(255) NUL
 -- ------------------------------------------------------------------------------
 -- 4. Shoe Size Stock Table (Inventory breakdown per EU size)
 -- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `shoe_size_stock` (
+DROP TABLE IF EXISTS `shoe_size_stock`;
+CREATE TABLE `shoe_size_stock` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `shoe_id` INT UNSIGNED NOT NULL,
     `size` VARCHAR(20) NOT NULL,
