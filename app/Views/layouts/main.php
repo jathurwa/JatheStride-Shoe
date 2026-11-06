@@ -20,7 +20,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="<?= base_url() ?>" class="flex items-center gap-2 text-stone-950 font-black text-2xl tracking-tight">
                 <span class="w-8 h-8 rounded-lg bg-stone-900 text-amber-500 flex items-center justify-center text-xs">JE</span>
-                <span>JATHE<span class="text-amber-600">STRIDE</span></span>
+                <span>SHOE<span class="text-amber-600">STRIDE</span></span>
             </a>
 
             <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-stone-600">
@@ -51,7 +51,7 @@
 
     <!-- Footer -->
     <footer class="bg-stone-950 text-stone-400 py-10 border-t border-stone-900 text-xs text-center">
-        <p>&copy; <?= date('Y') ?> JatheStride Shoe E-Commerce. Vercel Serverless.</p>
+        <p>&copy; <?= date('Y') ?> ShoeStride Shoe E-Commerce. Vercel Serverless.</p>
         <p> Designed by <a href="https://github.com/jathestride" target="_blank" class="text-amber-500 hover:text-amber-400">Elvis Ochieng</a></p>
         <p>Powered by <a href="https://codeigniter.com/" target="_blank" class="text-amber-500 hover:text-amber-400">CodeIgniter 4</a> & <a href="https://tailwindcss.com/" target="_blank" class="text-amber-500 hover:text-amber-400">Tailwind CSS</a></p>
     </footer>
