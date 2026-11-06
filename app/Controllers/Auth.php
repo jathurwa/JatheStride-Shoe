@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Filters\AuthFilter;
 
 class Auth extends BaseController
 {
@@ -18,12 +19,31 @@ class Auth extends BaseController
      */
     public function login()
     {
-        if (session()->get('is_logged_in')) {
+        $session = session();
+        if ($session->get('is_logged_in') && $session->get('user_role') === 'admin') {
+            return redirect()->to('/admin');
+        }
+
+        // Check if valid 30-minute signed cookie exists
+        $cookieToken = $_COOKIE[AuthFilter::COOKIE_NAME] ?? null;
+        $authFilter = new AuthFilter();
+        $userData = $authFilter->verifyToken($cookieToken);
+
+        if ($userData && ($userData['role'] ?? '') === 'admin') {
+            $session->set([
+                'is_logged_in' => true,
+                'user_id'      => $userData['id'],
+                'user_name'    => $userData['name'] ?? 'Store Admin',
+                'user_email'   => $userData['email'],
+                'user_role'    => 'admin',
+                'last_active'  => time(),
+            ]);
+            $authFilter->setAuthCookie($userData);
             return redirect()->to('/admin');
         }
 
         return view('admin/login', [
-            'title' => 'Admin Portal Login | ApexStride',
+            'title' => 'Admin Portal Login | JatheStride',
         ]);
     }
 
@@ -73,14 +93,20 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('error', 'Invalid admin credentials entered.');
         }
 
-        // Setup session
+        // Setup session with 30-minute timestamp
+        $now = time();
         session()->set([
             'is_logged_in' => true,
             'user_id'      => $user['id'],
             'user_name'    => $user['name'],
             'user_email'   => $user['email'],
             'user_role'    => $user['role'] ?? 'admin',
+            'last_active'  => $now,
         ]);
+
+        // Issue 30-minute signed auth cookie (resilient to serverless container restarts)
+        $authFilter = new AuthFilter();
+        $authFilter->setAuthCookie($user);
 
         return redirect()->to('/admin')->with('success', 'Welcome back, ' . $user['name'] . '!');
     }
@@ -91,6 +117,10 @@ class Auth extends BaseController
     public function logout()
     {
         session()->destroy();
+
+        $authFilter = new AuthFilter();
+        $authFilter->clearAuthCookie();
+
         return redirect()->to('/login')->with('success', 'You have been securely logged out.');
     }
 }

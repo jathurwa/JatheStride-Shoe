@@ -67,5 +67,20 @@
         <p class="mt-1">&copy; <?= date('Y') ?> JatheStride Shoe E-Commerce</p>
     </footer>
     <?= $this->renderSection('scripts') ?>
+
+    <!-- 30-Minute Session Keep-Alive Heartbeat while Admin Tab is Active -->
+    <script>
+    (function() {
+        // Every 5 minutes while admin is active on the page, keep the 30-minute window fresh
+        setInterval(function() {
+            if (!document.hidden) {
+                fetch('<?= base_url('admin/shoes') ?>', {
+                    method: 'HEAD',
+                    credentials: 'same-origin'
+                }).catch(function() {});
+            }
+        }, 5 * 60 * 1000);
+    })();
+    </script>
 </body>
 </html>

@@ -35,13 +35,13 @@ class Session extends BaseConfig
 
     /**
      * --------------------------------------------------------------------------
-     * Session Expiration
+     * Session Expiration (30 Minutes = 1800 Seconds)
      * --------------------------------------------------------------------------
      *
      * The number of SECONDS you want the session to last.
-     * Setting to 0 (zero) means expire when the browser is closed.
+     * Set to 1800 (30 minutes) as requested for admin sessions.
      */
-    public int $expiration = 7200;
+    public int $expiration = 1800;
 
     /**
      * --------------------------------------------------------------------------
@@ -49,14 +49,6 @@ class Session extends BaseConfig
      * --------------------------------------------------------------------------
      *
      * The location to save sessions to and is driver dependent.
-     *
-     * For the 'files' driver, it's a path to a writable directory.
-     * WARNING: Only absolute paths are supported!
-     *
-     * For the 'database' driver, it's a table name.
-     * Please read up the manual for the format with other session drivers.
-     *
-     * IMPORTANT: You are REQUIRED to set a valid save path!
      */
     public string $savePath = WRITEPATH . 'session';
 
@@ -65,30 +57,24 @@ class Session extends BaseConfig
      * Session Match IP
      * --------------------------------------------------------------------------
      *
-     * Whether to match the user's IP address when reading the session data.
-     *
-     * WARNING: If you're using the database driver, don't forget to update
-     *          your session table's PRIMARY KEY when changing this setting.
+     * Kept false so cellular or dynamic IP shifts do not log the admin out.
      */
     public bool $matchIP = false;
 
     /**
      * --------------------------------------------------------------------------
-     * Session Time to Update
+     * Session Time to Update (30 Minutes = 1800 Seconds)
      * --------------------------------------------------------------------------
      *
-     * How many seconds between CI regenerating the session ID.
+     * Set to 1800 to avoid aggressive mid-session regeneration (previously 300s)
+     * which caused premature logouts while editing or adding products.
      */
-    public int $timeToUpdate = 300;
+    public int $timeToUpdate = 1800;
 
     /**
      * --------------------------------------------------------------------------
      * Session Regenerate Destroy
      * --------------------------------------------------------------------------
-     *
-     * Whether to destroy session data associated with the old session ID
-     * when auto-regenerating the session ID. When set to FALSE, the data
-     * will be later deleted by the garbage collector.
      */
     public bool $regenerateDestroy = false;
 
@@ -96,8 +82,6 @@ class Session extends BaseConfig
      * --------------------------------------------------------------------------
      * Session Database Group
      * --------------------------------------------------------------------------
-     *
-     * DB Group for the database session.
      */
     public ?string $DBGroup = null;
 
@@ -105,11 +89,6 @@ class Session extends BaseConfig
      * --------------------------------------------------------------------------
      * Lock Retry Interval (microseconds)
      * --------------------------------------------------------------------------
-     *
-     * This is used for RedisHandler.
-     *
-     * Time (microseconds) to wait if lock cannot be acquired.
-     * The default is 100,000 microseconds (= 0.1 seconds).
      */
     public int $lockRetryInterval = 100_000;
 
@@ -117,12 +96,6 @@ class Session extends BaseConfig
      * --------------------------------------------------------------------------
      * Lock Max Retries
      * --------------------------------------------------------------------------
-     *
-     * This is used for RedisHandler.
-     *
-     * Maximum number of lock acquisition attempts.
-     * The default is 300 times. That is lock timeout is about 30 (0.1 * 300)
-     * seconds.
      */
     public int $lockMaxRetries = 300;
 }
