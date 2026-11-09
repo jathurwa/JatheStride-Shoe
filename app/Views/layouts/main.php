@@ -112,7 +112,7 @@
     <footer class="bg-stone-950 text-stone-400 text-sm border-t border-stone-900 mt-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div class="space-y-3">
-                <span class="text-white font-black tracking-wider text-lg">JATHE<span class="text-amber-600">STRIDE</span></span>
+                <span class="text-white font-black tracking-wider text-lg">APEX<span class="text-amber-600">STRIDE</span></span>
                 <p class="text-xs text-stone-500 leading-relaxed">
                     Premium footwear engineered for comfort, performance, and everyday style. Built with CodeIgniter 4 and edge serverless delivery.
                 </p>
