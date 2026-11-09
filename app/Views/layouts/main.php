@@ -28,7 +28,7 @@
     <!-- Serverless Notice Banner -->
     <div class="bg-stone-900 text-stone-300 text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-stone-800">
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>Hosted on <strong>Vercel Serverless</strong> &bull; Media streamed via <strong>Cloudinary</strong> &bull; CI4 PHP Runtime</span>
+        <!--<span>Hosted on <strong>Vercel Serverless</strong> &bull; Media streamed via <strong>Cloudinary</strong> &bull; CI4 PHP Runtime</span>-->
     </div>
 
     <!-- Navigation Header -->
@@ -114,7 +114,7 @@
             <div class="space-y-3">
                 <span class="text-white font-black tracking-wider text-lg">APEX<span class="text-amber-600">STRIDE</span></span>
                 <p class="text-xs text-stone-500 leading-relaxed">
-                    Premium footwear engineered for comfort, performance, and everyday style. Built with CodeIgniter 4 and edge serverless delivery.
+                    Premium footwear engineered for comfort, performance, and everyday style. Find the perfect pair for every foot, style and occassion
                 </p>
             </div>
             <div>
