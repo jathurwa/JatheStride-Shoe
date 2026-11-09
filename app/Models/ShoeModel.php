@@ -36,7 +36,6 @@ class ShoeModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
-    // Strict Validation Rules
     // Flexible Validation Rules
     protected $validationRules = [
         'name'           => 'required|min_length[3]|max_length[255]',
@@ -73,7 +72,7 @@ class ShoeModel extends Model
     /**
      * Fetch shoes with joined category name
      */
-    public function getShoesWithCategory(?int $categoryId = null, int $limit = 20)
+    public function getShoesWithCategory(?int $categoryId = null, int $limit = 100)
     {
         $builder = $this->select('shoes.*, categories.name as category_name, categories.slug as category_slug')
                         ->join('categories', 'categories.id = shoes.category_id', 'left')
@@ -85,6 +84,21 @@ class ShoeModel extends Model
         }
 
         return $builder->findAll($limit);
+    }
+
+    /**
+     * Fetch shoes with active discount / offer (sale_price > 0 and sale_price < price)
+     */
+    public function getOffers(int $limit = 100)
+    {
+        return $this->select('shoes.*, categories.name as category_name, categories.slug as category_slug')
+                    ->join('categories', 'categories.id = shoes.category_id', 'left')
+                    ->where('shoes.sale_price IS NOT NULL', null, false)
+                    ->where('shoes.sale_price >', 0)
+                    ->where('shoes.sale_price < shoes.price', null, false)
+                    ->orderBy('shoes.is_featured', 'DESC')
+                    ->orderBy('shoes.sale_price', 'ASC')
+                    ->findAll($limit);
     }
 
     /**

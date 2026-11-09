@@ -35,30 +35,71 @@
     </div>
 </section>
 
-<!-- Category Filtering Bar -->
+<!-- Category Filtering Bar & Search -->
 <section id="catalog" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-6">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-stone-200 pb-6">
-        <div>
-            <h2 class="text-2xl font-black tracking-tight text-stone-900">Footwear Catalog</h2>
-            <p class="text-xs text-stone-500 mt-1">Filter by silhouette, performance type, and occasions.</p>
-            <form action="<?= base_url('search') ?>" method="get" class="mt-4 flex max-w-md gap-2">
-                <label for="shoeSearch" class="sr-only">Search shoes</label>
-                <input id="shoeSearch" type="search" name="q" value="<?= esc($searchTerm ?? '') ?>" placeholder="Search shoes..." class="min-w-0 flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm focus:border-stone-900 focus:outline-none">
-                <button type="submit" class="rounded-xl bg-stone-900 px-4 py-2 text-xs font-bold text-white hover:bg-amber-600">Search</button>
+    <div class="flex flex-col gap-6 border-b border-stone-200 pb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-black tracking-tight text-stone-900">
+                    <?php if (!empty($isOffersOnly)): ?>
+                        Special Offers &amp; Discounts
+                    <?php elseif (!empty($searchTerm)): ?>
+                        Search: &ldquo;<?= esc($searchTerm) ?>&rdquo;
+                    <?php elseif (!empty($currentCategory['name'])): ?>
+                        <?= esc($currentCategory['name']) ?> Shoes
+                    <?php else: ?>
+                        Footwear Catalog
+                    <?php endif; ?>
+                </h2>
+                <p class="text-xs text-stone-500 mt-1">
+                    <?php if (!empty($isOffersOnly)): ?>
+                        Exclusive price markdowns on premium footwear &mdash; limited time offers.
+                    <?php elseif (!empty($searchTerm)): ?>
+                        Showing matching shoes for your query.
+                    <?php else: ?>
+                        Filter by silhouette, performance type, and occasions.
+                    <?php endif; ?>
+                </p>
+            </div>
+
+            <!-- Responsive Search Area (mobile & desktop) -->
+            <form action="<?= base_url('search') ?>#catalog" method="GET" class="w-full sm:w-72 lg:w-80">
+                <div class="relative flex items-center">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-stone-400 text-xs pointer-events-none"></i>
+                    <input type="search" 
+                           name="q" 
+                           value="<?= esc($searchTerm ?? '') ?>" 
+                           placeholder="Search shoes, colors, sizes..." 
+                           class="w-full pl-9 pr-16 py-2.5 bg-white text-stone-900 placeholder-stone-400 text-xs rounded-xl border border-stone-300 focus:outline-none focus:border-stone-900 focus:ring-1 focus:ring-stone-900 shadow-2xs"
+                           autocomplete="off">
+                    <button type="submit" 
+                            class="absolute right-1.5 px-3 py-1.5 bg-stone-900 text-white rounded-lg text-xs font-semibold hover:bg-amber-600 transition-colors">
+                        Search
+                    </button>
+                </div>
             </form>
         </div>
 
         <!-- Filter Pills -->
         <div class="flex flex-wrap items-center gap-2">
+            <!-- 1. All Footwear -->
             <a href="<?= base_url() ?>#catalog" 
-               class="px-4 py-2 rounded-xl text-xs font-bold transition-all <?= empty($selectedCategory) ? 'bg-stone-950 text-white shadow-sm' : 'bg-stone-200/70 hover:bg-stone-300 text-stone-700' ?>">
-                All Footwear (<?= count($shoes) ?>)
+               class="px-4 py-2 rounded-xl text-xs font-bold transition-all <?= (empty($selectedCategory) && empty($isOffersOnly) && empty($searchTerm)) ? 'bg-stone-950 text-white shadow-sm' : 'bg-stone-200/70 hover:bg-stone-300 text-stone-700' ?>">
+                All Footwear (<?= $totalShoesCount ?? count($shoes) ?>)
             </a>
 
+            <!-- 2. Offers (Immediately after All Footwear) -->
+            <a href="<?= base_url('offers') ?>#catalog" 
+               class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 <?= !empty($isOffersOnly) ? 'bg-rose-600 text-white shadow-md ring-2 ring-rose-500/30' : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80' ?>">
+                <i class="fa-solid fa-tag text-[10px] <?= !empty($isOffersOnly) ? 'text-white' : 'text-rose-500' ?>"></i>
+                <span>Offers <?= isset($offersCount) ? '(' . $offersCount . ')' : '' ?></span>
+            </a>
+
+            <!-- 3. Categories -->
             <?php if (!empty($categories)): ?>
                 <?php foreach ($categories as $cat): ?>
                     <a href="<?= base_url('category/' . esc($cat['slug'])) ?>#catalog" 
-                       class="px-4 py-2 rounded-xl text-xs font-bold transition-all <?= ($selectedCategory === $cat['slug']) ? 'bg-amber-600 text-white shadow-sm' : 'bg-stone-200/70 hover:bg-stone-300 text-stone-700' ?>">
+                       class="px-4 py-2 rounded-xl text-xs font-bold transition-all <?= ($selectedCategory === $cat['slug'] && empty($isOffersOnly)) ? 'bg-amber-600 text-white shadow-sm' : 'bg-stone-200/70 hover:bg-stone-300 text-stone-700' ?>">
                         <?= esc($cat['name']) ?>
                     </a>
                 <?php endforeach; ?>
@@ -73,26 +114,37 @@
         <div class="bg-white rounded-2xl border border-stone-200 p-12 text-center my-8">
             <i class="fa-solid fa-shoe-prints text-4xl text-stone-300 mb-4 block"></i>
             <h3 class="text-base font-bold text-stone-900">No Shoes Found</h3>
-            <p class="text-xs text-stone-500 mt-1">No shoes currently exist in this category.</p>
-            <a href="<?= base_url('admin/shoes/new') ?>" class="inline-block mt-4 text-xs font-semibold px-4 py-2 bg-stone-900 text-white rounded-lg">
-                + Add One in Admin
-            </a>
+            <p class="text-xs text-stone-500 mt-1">
+                <?= !empty($isOffersOnly) ? 'There are currently no shoes on special offer. Check back soon!' : 'No shoes match your selected category or search filter.' ?>
+            </p>
+            <div class="mt-4 flex justify-center gap-3">
+                <a href="<?= base_url() ?>#catalog" class="text-xs font-semibold px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg">
+                    Browse All Shoes
+                </a>
+                <a href="<?= base_url('admin/shoes/new') ?>" class="text-xs font-semibold px-4 py-2 bg-stone-900 text-white rounded-lg">
+                    + Add Shoe in Admin
+                </a>
+            </div>
         </div>
     <?php else: ?>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <?php foreach ($shoes as $shoe): ?>
+                <?php 
+                    $isOnSale = !empty($shoe['sale_price']) && (float)$shoe['sale_price'] > 0 && (float)$shoe['sale_price'] < (float)$shoe['price'];
+                    $discountPercent = $isOnSale ? round((((float)$shoe['price'] - (float)$shoe['sale_price']) / (float)$shoe['price']) * 100) : 0;
+                ?>
                 <div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-xl hover:border-stone-300 transition-all flex flex-col">
                     <!-- Image Card -->
                     <div class="relative bg-stone-100 p-6 flex items-center justify-center h-64 overflow-hidden">
-                        <?php if (!empty($shoe['sale_price'])): ?>
-                            <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-rose-600 text-white">
-                                Offer
+                        <?php if (!empty($shoe['is_featured'])): ?>
+                            <span class="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-stone-950">
+                                Featured
                             </span>
                         <?php endif; ?>
 
-                        <?php if (!empty($shoe['is_featured'])): ?>
-                            <span class="absolute <?= !empty($shoe['sale_price']) ? 'top-11' : 'top-3' ?> left-3 z-10 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-stone-950">
-                                Featured
+                        <?php if ($isOnSale): ?>
+                            <span class="absolute <?= !empty($shoe['is_featured']) ? 'top-10' : 'top-3' ?> left-3 z-10 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs flex items-center gap-1">
+                                <i class="fa-solid fa-tag text-[9px]"></i> <?= $discountPercent ?>% OFF
                             </span>
                         <?php endif; ?>
 
@@ -128,16 +180,18 @@
                         <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
                             <div>
                                 <span class="text-xs text-stone-400 block font-medium">Price</span>
-                                <?php if (!empty($shoe['sale_price'])): ?>
-                                    <span class="text-lg font-black text-rose-700 block">
-                                        KSH <?= number_format((float) $shoe['sale_price'], 2) ?>
-                                    </span>
-                                    <span class="text-xs text-stone-400 line-through">
-                                        KSH <?= number_format((float) $shoe['price'], 2) ?>
-                                    </span>
+                                <?php if ($isOnSale): ?>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-lg font-black text-rose-600">
+                                            KSH <?= number_format((float)$shoe['sale_price'], 2) ?>
+                                        </span>
+                                        <span class="text-xs font-semibold text-stone-400 line-through">
+                                            KSH <?= number_format((float)$shoe['price'], 2) ?>
+                                        </span>
+                                    </div>
                                 <?php else: ?>
                                     <span class="text-lg font-black text-stone-950">
-                                        KSH <?= number_format((float) $shoe['price'], 2) ?>
+                                        KSH <?= number_format((float)$shoe['price'], 2) ?>
                                     </span>
                                 <?php endif; ?>
                             </div>

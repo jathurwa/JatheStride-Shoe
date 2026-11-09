@@ -26,12 +26,37 @@ class Products extends BaseController
     }
 
     /**
+     * Dedicated offers / on-sale view
+     */
+    public function offers()
+    {
+        $allCategories = $this->categoryModel->findAll();
+        $shoes = $this->shoeModel->getOffers(100);
+        $totalShoesCount = $this->shoeModel->countAllResults(false);
+
+        return view('storefront/home', [
+            'title'            => 'Special Offers & Discounts | ApexStride',
+            'shoes'            => $shoes,
+            'categories'       => $allCategories,
+            'selectedCategory' => 'offers',
+            'isOffersOnly'     => true,
+            'offersCount'      => count($shoes),
+            'totalShoesCount'  => $totalShoesCount,
+            'featuredShoes'    => array_filter($shoes, static fn($s) => !empty($s['is_featured'])),
+        ]);
+    }
+
+    /**
      * Category filtering view
      */
     public function category(string $slug)
     {
         if ($slug === 'all') {
             return redirect()->to('/');
+        }
+
+        if ($slug === 'offers') {
+            return redirect()->to('/offers');
         }
 
         $category = $this->categoryModel->where('slug', $slug)->first();
@@ -41,13 +66,18 @@ class Products extends BaseController
 
         $shoes = $this->shoeModel->getShoesWithCategory($category['id'], 100);
         $allCategories = $this->categoryModel->findAll();
+        $offersCount = count($this->shoeModel->getOffers(100));
+        $totalShoesCount = $this->shoeModel->countAllResults(false);
 
         return view('storefront/home', [
-            'title'            => $category['name'] . ' Shoes | JatheStride',
+            'title'            => $category['name'] . ' Shoes | ApexStride',
             'shoes'            => $shoes,
             'categories'       => $allCategories,
             'currentCategory'  => $category,
             'selectedCategory' => $slug,
+            'isOffersOnly'     => false,
+            'offersCount'      => $offersCount,
+            'totalShoesCount'  => $totalShoesCount,
         ]);
     }
 
@@ -67,7 +97,7 @@ class Products extends BaseController
             ->findAll(4);
 
         return view('storefront/detail', [
-            'title'        => $shoe['name'] . ' | JatheStride',
+            'title'        => $shoe['name'] . ' | ApexStride',
             'shoe'         => $shoe,
             'sizeStock'    => $this->sizeStockModel->getQuantitiesForShoe((int) $shoe['id']),
             'relatedShoes' => $relatedShoes,
@@ -86,6 +116,9 @@ class Products extends BaseController
             $builder->groupStart()
                 ->like('shoes.name', $query)
                 ->orLike('shoes.description', $query)
+                ->orLike('categories.name', $query)
+                ->orLike('shoes.colors_available', $query)
+                ->orLike('shoes.sizes_available', $query)
                 ->groupEnd();
         }
 
@@ -94,23 +127,29 @@ class Products extends BaseController
             ->orderBy('shoes.created_at', 'DESC')
             ->findAll(100);
 
+        $offersCount = count($this->shoeModel->getOffers(100));
+        $totalShoesCount = $this->shoeModel->countAllResults(false);
+
         return view('storefront/home', [
-            'title'            => $query === '' ? 'Search Shoes | JatheStride' : 'Search: ' . $query . ' | JatheStride',
+            'title'            => $query === '' ? 'Search Shoes | ApexStride' : 'Search: ' . $query . ' | ApexStride',
             'shoes'            => $shoes,
             'categories'       => $this->categoryModel->findAll(),
             'selectedCategory' => null,
             'searchTerm'       => $query,
+            'isOffersOnly'     => false,
+            'offersCount'      => $offersCount,
+            'totalShoesCount'  => $totalShoesCount,
             'featuredShoes'    => array_filter($shoes, static fn($shoe) => !empty($shoe['is_featured'])),
         ]);
     }
 
     public function cart()
     {
-        return view('storefront/cart', ['title' => 'Your Bag | JatheStride']);
+        return view('storefront/cart', ['title' => 'Your Bag | ApexStride']);
     }
 
     public function checkout()
     {
-        return view('storefront/checkout', ['title' => 'Checkout | JatheStride']);
+        return view('storefront/checkout', ['title' => 'Checkout | ApexStride']);
     }
 }

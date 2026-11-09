@@ -23,23 +23,35 @@ class Home extends BaseController
     {
         $selectedCategory = $this->request->getGet('category');
         $categoryId = null;
-
+        $isOffersOnly = false;
         $categories = $this->categoryModel->findAll();
 
-        if ($selectedCategory) {
+        if ($selectedCategory === 'offers' || $this->request->getGet('offers')) {
+            $isOffersOnly = true;
+            $shoes = $this->shoeModel->getOffers(100);
+            $selectedCategory = 'offers';
+        } elseif ($selectedCategory) {
             $cat = $this->categoryModel->where('slug', $selectedCategory)->first();
             if ($cat) {
                 $categoryId = $cat['id'];
             }
+            $shoes = $this->shoeModel->getShoesWithCategory($categoryId, 100);
+        } else {
+            $shoes = $this->shoeModel->getShoesWithCategory(null, 100);
         }
 
-        $shoes = $this->shoeModel->getShoesWithCategory($categoryId);
+        $allOffers = $this->shoeModel->getOffers(100);
+        $offersCount = count($allOffers);
+        $totalShoesCount = $this->shoeModel->countAllResults(false);
 
         $data = [
-            'title'            => 'ApexStride | Premium Footwear Collection',
+            'title'            => $isOffersOnly ? 'Special Offers | ApexStride' : 'ApexStride | Premium Footwear Collection',
             'shoes'            => $shoes,
             'categories'       => $categories,
             'selectedCategory' => $selectedCategory,
+            'isOffersOnly'     => $isOffersOnly,
+            'offersCount'      => $offersCount,
+            'totalShoesCount'  => $totalShoesCount,
             'featuredShoes'    => array_filter($shoes, fn($s) => !empty($s['is_featured'])),
         ];
 

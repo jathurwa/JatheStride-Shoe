@@ -20,6 +20,7 @@ $routes->setAutoRoute(false);
 // Public Storefront Routes
 // --------------------------------------------------------------------
 $routes->get('/', 'Home::index');
+$routes->get('offers', 'Products::offers');
 $routes->get('category/(:segment)', 'Products::category/$1');
 $routes->get('product/(:segment)', 'Products::detail/$1');
 $routes->get('products/(:segment)', 'Products::detail/$1');
