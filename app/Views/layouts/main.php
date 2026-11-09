@@ -110,41 +110,41 @@
 
     <!-- Footer -->
     <footer class="bg-stone-950 text-stone-400 text-sm border-t border-stone-900 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div class="space-y-3">
-                <span class="text-white font-black tracking-wider text-lg">APEXSTRIDE</span>
+                <span class="text-white font-black tracking-wider text-lg">JATHE<span class="text-amber-600">STRIDE</span></span>
                 <p class="text-xs text-stone-500 leading-relaxed">
-                    Engineered for peak performance. Built on CodeIgniter 4 with direct serverless execution on Vercel.
+                    Premium footwear engineered for comfort, performance, and everyday style. Built with CodeIgniter 4 and edge serverless delivery.
                 </p>
             </div>
             <div>
                 <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3">Categories</h4>
                 <ul class="space-y-2 text-xs">
-                    <li><a href="<?= base_url('category/sneakers') ?>" class="hover:text-white">Lifestyle & Sneakers</a></li>
-                    <li><a href="<?= base_url('category/running') ?>" class="hover:text-white">Performance Running</a></li>
-                    <li><a href="<?= base_url('category/boots') ?>" class="hover:text-white">Rugged Leather Boots</a></li>
-                    <li><a href="<?= base_url('category/formal') ?>" class="hover:text-white">Handcrafted Formal</a></li>
+                    <li><a href="<?= base_url('category/sneakers') ?>" class="hover:text-white transition-colors">Lifestyle &amp; Sneakers</a></li>
+                    <li><a href="<?= base_url('category/running') ?>" class="hover:text-white transition-colors">Performance Running</a></li>
+                    <li><a href="<?= base_url('category/boots') ?>" class="hover:text-white transition-colors">Rugged Leather Boots</a></li>
+                    <li><a href="<?= base_url('category/formal') ?>" class="hover:text-white transition-colors">Handcrafted Formal</a></li>
+                    <li><a href="<?= base_url('category/kids') ?>" class="hover:text-white transition-colors">Kids Collection</a></li>
                 </ul>
             </div>
             <div>
-                <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3">DevOps & Architecture</h4>
+                <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3">Quick Links</h4>
                 <ul class="space-y-2 text-xs">
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-cloud text-amber-500"></i> Vercel Serverless PHP</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-folder-open text-sky-400"></i> /tmp Writable Redirection</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-image text-emerald-400"></i> Cloudinary Direct CDN</li>
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-database text-purple-400"></i> getenv() Cloud SQL</li>
+                    <li>
+                        <a href="<?= base_url('offers') ?>" class="text-rose-400 hover:text-rose-300 font-semibold transition-colors flex items-center gap-1.5">
+                            <i class="fa-solid fa-tag text-[10px]"></i>
+                            <span>Special Offers &amp; Discounts</span>
+                        </a>
+                    </li>
+                    <li><a href="<?= base_url() ?>#catalog" class="hover:text-white transition-colors">All Footwear</a></li>
+                    <li><a href="<?= base_url('cart') ?>" class="hover:text-white transition-colors">Shopping Bag</a></li>
+                    <li><a href="<?= base_url('admin') ?>" class="hover:text-white transition-colors">Admin Portal</a></li>
                 </ul>
-            </div>
-            <div>
-                <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3">Shop Administration</h4>
-                <p class="text-xs text-stone-500 mb-3">Manage shoes, categories, prices, and cloud image uploads in real time.</p>
-                <a href="<?= base_url('admin') ?>" class="inline-block px-4 py-2 bg-stone-800 text-white rounded text-xs font-semibold hover:bg-stone-700 transition-colors">
-                    Access Dashboard &rarr;
-                </a>
             </div>
         </div>
-        <div class="border-t border-stone-900 py-4 text-center text-xs text-stone-600">
-            &copy; <?= date('Y') ?> ApexStride Inc. Fully optimized for Vercel deployment.
+        <div class="border-t border-stone-900 py-6 text-center text-xs text-stone-400 space-y-1.5">
+            <p class="font-medium text-stone-300">&copy; 2026 JatheStride Shoe E-Commerce. Vercel Serverless.</p>
+            <p class="text-stone-400">Designed by <strong class="text-stone-200">Elvis Ochieng</strong></p>
         </div>
     </footer>
 </body>
