@@ -124,7 +124,7 @@
                                 </div>
                                 <p class="text-[11px] text-stone-500 mt-0.5">Overwrite size stock with physical audit counts.</p>
                             </div>
-                        </div>
+                        </label>
                     </div>
                 </div>
 

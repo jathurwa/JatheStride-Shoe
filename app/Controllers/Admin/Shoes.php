@@ -348,6 +348,7 @@ class Shoes extends BaseController
         }
 
         $entries = $stockResult['entries'];
+        $database = db_connect();
 
         if ($stockAction === 'add') {
             $filtered = array_values(array_filter(
@@ -362,20 +363,28 @@ class Shoes extends BaseController
             $allSizes = array_values(array_unique(array_merge($existingSizes, array_column($filtered, 'size'))));
             $received = array_sum(array_column($filtered, 'quantity'));
 
-            $database = db_connect();
-            $database->transStart();
-            $this->sizeStockModel->addQuantities($shoeId, $filtered);
-            $quantities = $this->sizeStockModel->getQuantitiesForShoe($shoeId);
-            $newTotalStock = array_sum($quantities);
+            $database->transBegin();
+            try {
+                $this->sizeStockModel->addQuantities($shoeId, $filtered);
+                $quantities = $this->sizeStockModel->getQuantitiesForShoe($shoeId);
+                $newTotalStock = !empty($quantities) ? array_sum($quantities) : ((int) ($shoe['stock_quantity'] ?? 0) + $received);
 
-            $updated = $this->shoeModel->builder()->where('id', $shoeId)->update([
-                'sizes_available' => implode(',', $allSizes),
-                'stock_quantity'  => $newTotalStock,
-            ]);
-            $database->transComplete();
+                $database->table('shoes')->where('id', $shoeId)->update([
+                    'sizes_available' => implode(',', $allSizes),
+                    'stock_quantity'  => $newTotalStock,
+                ]);
 
-            if (!$updated || !$database->transStatus()) {
-                return redirect()->back()->withInput()->with('error', 'Stock could not be saved. No inventory changes were applied.');
+                if ($database->transStatus() === false) {
+                    $database->transRollback();
+                    $dbErr = $database->error();
+                    $msg = !empty($dbErr['message']) ? $dbErr['message'] : 'Database transaction failed.';
+                    return redirect()->back()->withInput()->with('error', 'Stock could not be saved: ' . $msg);
+                }
+
+                $database->transCommit();
+            } catch (\Throwable $e) {
+                $database->transRollback();
+                return redirect()->back()->withInput()->with('error', 'Stock could not be saved: ' . $e->getMessage());
             }
 
             return redirect()->to('/admin/stock?shoe_id=' . $shoeId)->with('success', "Added {$received} pairs of '{$shoe['name']}'. New total stock: {$newTotalStock} pairs.");
@@ -390,37 +399,53 @@ class Shoes extends BaseController
 
             $deducted = array_sum(array_column($filtered, 'quantity'));
 
-            $database = db_connect();
-            $database->transStart();
-            $this->sizeStockModel->reduceQuantities($shoeId, $filtered);
-            $quantities = $this->sizeStockModel->getQuantitiesForShoe($shoeId);
-            $newTotalStock = array_sum($quantities);
+            $database->transBegin();
+            try {
+                $this->sizeStockModel->reduceQuantities($shoeId, $filtered);
+                $quantities = $this->sizeStockModel->getQuantitiesForShoe($shoeId);
+                $newTotalStock = !empty($quantities) ? array_sum($quantities) : max(0, (int) ($shoe['stock_quantity'] ?? 0) - $deducted);
 
-            $updated = $this->shoeModel->builder()->where('id', $shoeId)->update([
-                'stock_quantity' => $newTotalStock,
-            ]);
-            $database->transComplete();
+                $database->table('shoes')->where('id', $shoeId)->update([
+                    'stock_quantity' => $newTotalStock,
+                ]);
 
-            if (!$updated || !$database->transStatus()) {
-                return redirect()->back()->withInput()->with('error', 'Stock could not be reduced. No inventory changes were applied.');
+                if ($database->transStatus() === false) {
+                    $database->transRollback();
+                    $dbErr = $database->error();
+                    $msg = !empty($dbErr['message']) ? $dbErr['message'] : 'Database transaction failed.';
+                    return redirect()->back()->withInput()->with('error', 'Stock could not be reduced: ' . $msg);
+                }
+
+                $database->transCommit();
+            } catch (\Throwable $e) {
+                $database->transRollback();
+                return redirect()->back()->withInput()->with('error', 'Stock could not be reduced: ' . $e->getMessage());
             }
 
             return redirect()->to('/admin/stock?shoe_id=' . $shoeId)->with('success', "Reduced stock for '{$shoe['name']}' by {$deducted} pairs. New total stock: {$newTotalStock} pairs.");
         } else {
             // 'set' exact counts
-            $database = db_connect();
-            $database->transStart();
-            $this->sizeStockModel->setQuantities($shoeId, $entries);
-            $quantities = $this->sizeStockModel->getQuantitiesForShoe($shoeId);
-            $newTotalStock = array_sum($quantities);
+            $database->transBegin();
+            try {
+                $this->sizeStockModel->setQuantities($shoeId, $entries);
+                $quantities = $this->sizeStockModel->getQuantitiesForShoe($shoeId);
+                $newTotalStock = !empty($quantities) ? array_sum($quantities) : array_sum(array_column($entries, 'quantity'));
 
-            $updated = $this->shoeModel->builder()->where('id', $shoeId)->update([
-                'stock_quantity' => $newTotalStock,
-            ]);
-            $database->transComplete();
+                $database->table('shoes')->where('id', $shoeId)->update([
+                    'stock_quantity' => $newTotalStock,
+                ]);
 
-            if (!$updated || !$database->transStatus()) {
-                return redirect()->back()->withInput()->with('error', 'Stock could not be updated. No inventory changes were applied.');
+                if ($database->transStatus() === false) {
+                    $database->transRollback();
+                    $dbErr = $database->error();
+                    $msg = !empty($dbErr['message']) ? $dbErr['message'] : 'Database transaction failed.';
+                    return redirect()->back()->withInput()->with('error', 'Stock could not be updated: ' . $msg);
+                }
+
+                $database->transCommit();
+            } catch (\Throwable $e) {
+                $database->transRollback();
+                return redirect()->back()->withInput()->with('error', 'Stock could not be updated: ' . $e->getMessage());
             }
 
             return redirect()->to('/admin/stock?shoe_id=' . $shoeId)->with('success', "Updated exact stock for '{$shoe['name']}'. New total stock: {$newTotalStock} pairs.");
