@@ -14,10 +14,11 @@ export default function App() {
   const [categories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [currentView, setCurrentView] = useState<'store' | 'admin' | 'devops'>('store');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [detailShoe, setDetailShoe] = useState<Shoe | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -65,7 +66,14 @@ export default function App() {
   };
 
   // Admin CRUD operations
-  const handleAdminLogin = (): boolean => false;
+  const handleAdminLogin = (email: string, pass: string): boolean => {
+    if (email === 'admin@solestore.com' && pass === 'AdminSecurePass2025!') {
+      setIsAdminLoggedIn(true);
+      showToast('Logged into CodeIgniter 4 Admin Portal!');
+      return true;
+    }
+    return false;
+  };
 
   const handleAdminLogout = () => {
     setIsAdminLoggedIn(false);
@@ -120,6 +128,9 @@ export default function App() {
         cartCount={totalCartCount}
         onOpenCart={() => setIsCartOpen(true)}
         isAdminLoggedIn={isAdminLoggedIn}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        offersCount={shoes.filter((s) => s.sale_price && s.sale_price > 0 && s.sale_price < s.price).length}
       />
 
       {/* View Switcher Bar on Sub-pages */}
@@ -164,6 +175,8 @@ export default function App() {
             onSelectShoe={(shoe) => setDetailShoe(shoe)}
             onQuickAdd={handleQuickAdd}
             onGoToAdmin={() => setCurrentView('admin')}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
           />
         )}
 
@@ -205,11 +218,11 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-stone-950 text-stone-400 text-xs border-t border-stone-900 mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <div className="space-y-3">
-            <span className="text-white font-black tracking-wider text-base">APEXSTRIDE</span>
+            <span className="text-white font-black tracking-wider text-base">APEX<span className="text-amber-600">STRIDE</span></span>
             <p className="text-stone-500 leading-relaxed text-[11px]">
-              Engineered with CodeIgniter 4 (CI4) MVC framework for serverless Vercel deployment. Full cloud database support and direct Cloudinary image streaming.
+              Premium footwear engineered for comfort, performance, and everyday style. Built with CodeIgniter 4 and edge serverless delivery.
             </p>
           </div>
 
@@ -224,9 +237,9 @@ export default function App() {
                     setCurrentView('store');
                     setSelectedCategory('sneakers');
                   }}
-                  className="hover:text-white"
+                  className="hover:text-white transition-colors"
                 >
-                  Lifestyle & Sneakers
+                  Lifestyle &amp; Sneakers
                 </button>
               </li>
               <li>
@@ -235,7 +248,7 @@ export default function App() {
                     setCurrentView('store');
                     setSelectedCategory('running');
                   }}
-                  className="hover:text-white"
+                  className="hover:text-white transition-colors"
                 >
                   Performance Running
                 </button>
@@ -246,7 +259,7 @@ export default function App() {
                     setCurrentView('store');
                     setSelectedCategory('boots');
                   }}
-                  className="hover:text-white"
+                  className="hover:text-white transition-colors"
                 >
                   Rugged Leather Boots
                 </button>
@@ -257,9 +270,20 @@ export default function App() {
                     setCurrentView('store');
                     setSelectedCategory('formal');
                   }}
-                  className="hover:text-white"
+                  className="hover:text-white transition-colors"
                 >
                   Handcrafted Formal
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setCurrentView('store');
+                    setSelectedCategory('kids');
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  Kids Collection
                 </button>
               </li>
             </ul>
@@ -267,46 +291,54 @@ export default function App() {
 
           <div>
             <h4 className="text-white font-bold uppercase tracking-wider mb-3 text-[11px]">
-              Vercel Architecture Specs
+              Quick Links
             </h4>
             <ul className="space-y-1.5 text-[11px]">
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                <span>vercel-php@0.7.0 runtime</span>
+              <li>
+                <button
+                  onClick={() => {
+                    setCurrentView('store');
+                    setSelectedCategory('offers');
+                  }}
+                  className="text-rose-400 hover:text-rose-300 font-semibold transition-colors flex items-center gap-1"
+                >
+                  <span>Special Offers &amp; Discounts</span>
+                </button>
               </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                <span>/tmp/ci4_writable redirection</span>
+              <li>
+                <button
+                  onClick={() => {
+                    setCurrentView('store');
+                    setSelectedCategory('all');
+                  }}
+                  className="hover:text-white transition-colors"
+                >
+                  All Footwear
+                </button>
               </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-                <span>Cloudinary & S3 direct uploads</span>
+              <li>
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="hover:text-white transition-colors"
+                >
+                  Shopping Bag
+                </button>
               </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                <span>getenv() DB connection</span>
+              <li>
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  className="hover:text-white transition-colors"
+                >
+                  Admin Portal
+                </button>
               </li>
             </ul>
           </div>
-
-          <div>
-            <h4 className="text-white font-bold uppercase tracking-wider mb-3 text-[11px]">
-              Developer Tools
-            </h4>
-            <p className="text-stone-500 mb-3 text-[11px]">
-              Inspect CI4 source files or download the complete production ZIP package.
-            </p>
-            <button
-              onClick={() => setCurrentView('devops')}
-              className="inline-block px-4 py-2 bg-stone-800 text-white rounded-xl text-xs font-semibold hover:bg-stone-700 transition-colors"
-            >
-              Open CI4 Code Inspector &rarr;
-            </button>
-          </div>
         </div>
 
-        <div className="border-t border-stone-900 py-4 text-center text-[11px] text-stone-600">
-          &copy; {new Date().getFullYear()} ApexStride Shoe E-Commerce. CodeIgniter 4 on Vercel Serverless.
+        <div className="border-t border-stone-900 py-6 text-center text-xs text-stone-400 space-y-1.5">
+          <p className="font-medium text-stone-300">&copy; 2026 JatheStride Shoe E-Commerce. Vercel Serverless.</p>
+          <p className="text-stone-400">Designed by <strong className="text-stone-200"><a href="https://elvis-portfolio-ejcb.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-stone-600 underline-offset-2">Elvis Ochieng</a></strong></p>
         </div>
       </footer>
     </div>

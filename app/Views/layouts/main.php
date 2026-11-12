@@ -143,8 +143,8 @@
             </div>
         </div>
         <div class="border-t border-stone-900 py-6 text-center text-xs text-stone-400 space-y-1.5">
-            <p class="font-medium text-stone-300">&copy; 2026 ApexStride Shoe E-Commerce. Vercel Serverless.</p>
-            <p class="text-stone-400">Designed by <strong class="text-stone-200"><a href="<?= base_url('https://elvis-portfolio-ejcb.vercel.app') ?>class="hover:text-white transition-colors">Elvis Ochieng</strong></p>
+            <p class="font-medium text-stone-300">&copy; 2026 JatheStride Shoe E-Commerce. Vercel Serverless.</p>
+            <p class="text-stone-400">Designed by <strong class="text-stone-200"><a href="https://elvis-portfolio-ejcb.vercel.app" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors underline decoration-stone-600 underline-offset-2">Elvis Ochieng</a></strong></p>
         </div>
     </footer>
 </body>

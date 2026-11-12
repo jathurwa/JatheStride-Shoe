@@ -10,64 +10,91 @@ class ShoeSizeStockModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $protectFields    = true;
-    protected $allowedFields    = ['shoe_id', 'size', 'quantity'];
-    protected $useTimestamps   = false;
-
-    public function getQuantitiesForShoe(int $shoeId): array
-    {
-        $rows = $this->select('size, quantity')->where('shoe_id', $shoeId)->findAll();
-        $quantities = [];
-
-        foreach ($rows as $row) {
-            $quantities[$row['size']] = (int) $row['quantity'];
-        }
-
-        return $quantities;
-    }
+    protected $allowedFields    = ['shoe_id', 'size', 'quantity', 'created_at', 'updated_at'];
+    protected $useTimestamps    = true;
 
     public function getAllQuantities(): array
     {
-        $rows = $this->select('shoe_id, size, quantity')->findAll();
-        $quantities = [];
-
+        $rows = $this->findAll();
+        $map = [];
         foreach ($rows as $row) {
-            $quantities[$row['shoe_id']][$row['size']] = (int) $row['quantity'];
+            $map[$row['shoe_id']][$row['size']] = (int) $row['quantity'];
         }
+        return $map;
+    }
 
-        return $quantities;
+    public function getQuantitiesForShoe(int $shoeId): array
+    {
+        $rows = $this->where('shoe_id', $shoeId)->findAll();
+        $map = [];
+        foreach ($rows as $row) {
+            $map[$row['size']] = (int) $row['quantity'];
+        }
+        return $map;
     }
 
     public function addQuantities(int $shoeId, array $entries): void
     {
         foreach ($entries as $entry) {
             $existing = $this->where('shoe_id', $shoeId)
-                ->where('size', $entry['size'])
-                ->first();
-
+                             ->where('size', $entry['size'])
+                             ->first();
             if ($existing) {
                 $this->update($existing['id'], [
-                    'quantity' => (int) $existing['quantity'] + (int) $entry['quantity'],
+                    'quantity' => (int) $existing['quantity'] + (int) $entry['quantity']
                 ]);
-                continue;
+            } else {
+                $this->insert([
+                    'shoe_id'  => $shoeId,
+                    'size'     => $entry['size'],
+                    'quantity' => (int) $entry['quantity']
+                ]);
             }
-
-            $this->insert([
-                'shoe_id'  => $shoeId,
-                'size'     => $entry['size'],
-                'quantity' => (int) $entry['quantity'],
-            ]);
         }
     }
 
-    public function removeSizes(int $shoeId, array $sizes): void
+    public function reduceQuantities(int $shoeId, array $entries): void
     {
-        if ($sizes === []) {
-            return;
+        foreach ($entries as $entry) {
+            $existing = $this->where('shoe_id', $shoeId)
+                             ->where('size', $entry['size'])
+                             ->first();
+            if ($existing) {
+                $newQty = max(0, (int) $existing['quantity'] - (int) $entry['quantity']);
+                $this->update($existing['id'], [
+                    'quantity' => $newQty,
+                ]);
+            }
         }
+    }
 
-        $this->where('shoe_id', $shoeId)
-            ->whereIn('size', $sizes)
-            ->delete();
+    public function setQuantities(int $shoeId, array $entries): void
+    {
+        foreach ($entries as $entry) {
+            $existing = $this->where('shoe_id', $shoeId)
+                             ->where('size', $entry['size'])
+                             ->first();
+            $qty = max(0, (int) $entry['quantity']);
+            if ($existing) {
+                $this->update($existing['id'], [
+                    'quantity' => $qty,
+                ]);
+            } else {
+                $this->insert([
+                    'shoe_id'  => $shoeId,
+                    'size'     => $entry['size'],
+                    'quantity' => $qty,
+                ]);
+            }
+        }
+    }
+
+    public function removeSizes(int $shoeId, array $removedSizes): void
+    {
+        if (!empty($removedSizes)) {
+            $this->where('shoe_id', $shoeId)
+                 ->whereIn('size', $removedSizes)
+                 ->delete();
+        }
     }
 }
