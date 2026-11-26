@@ -72,24 +72,38 @@ class ShoeModel extends Model
     /**
      * Fetch shoes with joined category name
      */
-    public function getShoesWithCategory(?int $categoryId = null, int $limit = 100)
+    public function getShoesWithCategory(?int $categoryId = null, int $limit = 100, int $offset = 0)
     {
         $builder = $this->select('shoes.*, categories.name as category_name, categories.slug as category_slug')
                         ->join('categories', 'categories.id = shoes.category_id', 'left')
                         ->orderBy('shoes.is_featured', 'DESC')
-                        ->orderBy('shoes.created_at', 'DESC');
+                        ->orderBy('shoes.created_at', 'DESC')
+                        ->orderBy('shoes.id', 'DESC');
 
         if ($categoryId !== null) {
             $builder->where('shoes.category_id', $categoryId);
         }
 
-        return $builder->findAll($limit);
+        return $builder->findAll($limit, $offset);
+    }
+
+    /**
+     * Count total shoes optionally filtered by category
+     */
+    public function countShoesByCategory(?int $categoryId = null): int
+    {
+        $builder = $this->db->table($this->table);
+        if ($categoryId !== null) {
+            $builder->where('category_id', $categoryId);
+        }
+
+        return (int) $builder->countAllResults();
     }
 
     /**
      * Fetch shoes with active discount / offer (sale_price > 0 and sale_price < price)
      */
-    public function getOffers(int $limit = 100)
+    public function getOffers(int $limit = 100, int $offset = 0)
     {
         return $this->select('shoes.*, categories.name as category_name, categories.slug as category_slug')
                     ->join('categories', 'categories.id = shoes.category_id', 'left')
@@ -98,7 +112,20 @@ class ShoeModel extends Model
                     ->where('shoes.sale_price < shoes.price', null, false)
                     ->orderBy('shoes.is_featured', 'DESC')
                     ->orderBy('shoes.sale_price', 'ASC')
-                    ->findAll($limit);
+                    ->orderBy('shoes.id', 'DESC')
+                    ->findAll($limit, $offset);
+    }
+
+    /**
+     * Count shoes currently on offer
+     */
+    public function countOffers(): int
+    {
+        return (int) $this->db->table($this->table)
+            ->where('sale_price IS NOT NULL', null, false)
+            ->where('sale_price >', 0)
+            ->where('sale_price < price', null, false)
+            ->countAllResults();
     }
 
     /**

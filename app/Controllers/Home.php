@@ -23,36 +23,63 @@ class Home extends BaseController
     {
         $selectedCategory = $this->request->getGet('category');
         $categoryId = null;
+        $currentCategory = null;
         $isOffersOnly = false;
         $categories = $this->categoryModel->findAll();
 
+        $perPage = 20; // 5 rows x 4 columns on large screens
+        $requestedPage = max(1, (int) ($this->request->getGet('page') ?? 1));
+
         if ($selectedCategory === 'offers' || $this->request->getGet('offers')) {
             $isOffersOnly = true;
-            $shoes = $this->shoeModel->getOffers(100);
             $selectedCategory = 'offers';
+            $totalFilteredCount = $this->shoeModel->countOffers();
+            $totalPages = max(1, (int) ceil($totalFilteredCount / $perPage));
+            $currentPage = min($requestedPage, $totalPages);
+            $offset = ($currentPage - 1) * $perPage;
+            $shoes = $this->shoeModel->getOffers($perPage, $offset);
+            $paginationBaseUrl = base_url('offers');
         } elseif ($selectedCategory) {
             $cat = $this->categoryModel->where('slug', $selectedCategory)->first();
             if ($cat) {
-                $categoryId = $cat['id'];
+                $categoryId = (int) $cat['id'];
+                $currentCategory = $cat;
             }
-            $shoes = $this->shoeModel->getShoesWithCategory($categoryId, 100);
+            $totalFilteredCount = $this->shoeModel->countShoesByCategory($categoryId);
+            $totalPages = max(1, (int) ceil($totalFilteredCount / $perPage));
+            $currentPage = min($requestedPage, $totalPages);
+            $offset = ($currentPage - 1) * $perPage;
+            $shoes = $this->shoeModel->getShoesWithCategory($categoryId, $perPage, $offset);
+            $paginationBaseUrl = $cat ? base_url('category/' . $cat['slug']) : base_url();
         } else {
-            $shoes = $this->shoeModel->getShoesWithCategory(null, 100);
+            $totalFilteredCount = $this->shoeModel->countShoesByCategory(null);
+            $totalPages = max(1, (int) ceil($totalFilteredCount / $perPage));
+            $currentPage = min($requestedPage, $totalPages);
+            $offset = ($currentPage - 1) * $perPage;
+            $shoes = $this->shoeModel->getShoesWithCategory(null, $perPage, $offset);
+            $paginationBaseUrl = base_url();
         }
 
-        $allOffers = $this->shoeModel->getOffers(100);
-        $offersCount = count($allOffers);
-        $totalShoesCount = $this->shoeModel->countAllResults(false);
+        $offersCount = $isOffersOnly ? $totalFilteredCount : $this->shoeModel->countOffers();
+        $totalShoesCount = ($selectedCategory === null && !$isOffersOnly)
+            ? $totalFilteredCount
+            : $this->shoeModel->countShoesByCategory(null);
 
         $data = [
-            'title'            => $isOffersOnly ? 'Special Offers | ApexStride' : 'ApexStride | Premium Footwear Collection',
-            'shoes'            => $shoes,
-            'categories'       => $categories,
-            'selectedCategory' => $selectedCategory,
-            'isOffersOnly'     => $isOffersOnly,
-            'offersCount'      => $offersCount,
-            'totalShoesCount'  => $totalShoesCount,
-            'featuredShoes'    => array_filter($shoes, fn($s) => !empty($s['is_featured'])),
+            'title'              => $isOffersOnly ? 'Special Offers | ApexStride' : 'ApexStride | Premium Footwear Collection',
+            'shoes'              => $shoes,
+            'categories'         => $categories,
+            'currentCategory'    => $currentCategory,
+            'selectedCategory'   => $selectedCategory,
+            'isOffersOnly'       => $isOffersOnly,
+            'offersCount'        => $offersCount,
+            'totalShoesCount'    => $totalShoesCount,
+            'totalFilteredCount' => $totalFilteredCount,
+            'currentPage'        => $currentPage,
+            'totalPages'         => $totalPages,
+            'perPage'            => $perPage,
+            'paginationBaseUrl'  => $paginationBaseUrl,
+            'featuredShoes'      => array_filter($shoes, fn($s) => !empty($s['is_featured'])),
         ];
 
         return view('storefront/home', $data);

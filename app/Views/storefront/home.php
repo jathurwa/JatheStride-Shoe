@@ -206,6 +206,109 @@
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <?php
+            $currentPageNum = (int) ($currentPage ?? 1);
+            $totalPagesNum = (int) ($totalPages ?? 1);
+            $perPageNum = (int) ($perPage ?? 20);
+            $totalItemsNum = (int) ($totalFilteredCount ?? count($shoes));
+            $basePagUrl = (string) ($paginationBaseUrl ?? base_url());
+            $buildPageUrl = static function (int $targetPage) use ($basePagUrl): string {
+                if ($targetPage <= 1) {
+                    return $basePagUrl . '#catalog';
+                }
+                $sep = strpos($basePagUrl, '?') !== false ? '&' : '?';
+                return $basePagUrl . $sep . 'page=' . $targetPage . '#catalog';
+            };
+        ?>
+
+        <?php if ($totalPagesNum > 1): ?>
+            <?php
+                $startItem = (($currentPageNum - 1) * $perPageNum) + 1;
+                $endItem = min($totalItemsNum, $currentPageNum * $perPageNum);
+
+                // Build page numbers list (always includes 1, 2, 3 when applicable and smart ellipsis for very large catalogs)
+                $pageNumbers = [];
+                if ($totalPagesNum <= 7) {
+                    $pageNumbers = range(1, $totalPagesNum);
+                } else {
+                    $windowStart = max(2, $currentPageNum - 1);
+                    $windowEnd = min($totalPagesNum - 1, $currentPageNum + 1);
+                    if ($currentPageNum <= 2) {
+                        $windowStart = 2;
+                        $windowEnd = 3;
+                    } elseif ($currentPageNum >= $totalPagesNum - 1) {
+                        $windowStart = $totalPagesNum - 2;
+                        $windowEnd = $totalPagesNum - 1;
+                    }
+
+                    $pageNumbers[] = 1;
+                    if ($windowStart > 2) {
+                        $pageNumbers[] = '...';
+                    }
+                    for ($p = $windowStart; $p <= $windowEnd; $p++) {
+                        $pageNumbers[] = $p;
+                    }
+                    if ($windowEnd < $totalPagesNum - 1) {
+                        $pageNumbers[] = '...';
+                    }
+                    $pageNumbers[] = $totalPagesNum;
+                }
+            ?>
+            <nav aria-label="Catalog pagination" class="mt-12 pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p class="text-xs text-stone-500 font-medium">
+                    Showing <strong class="text-stone-900"><?= $startItem ?>&ndash;<?= $endItem ?></strong> of <strong class="text-stone-900"><?= $totalItemsNum ?></strong> shoes
+                    <span class="text-stone-400">&bull; Page <?= $currentPageNum ?> of <?= $totalPagesNum ?></span>
+                </p>
+
+                <div class="flex flex-wrap items-center justify-center gap-1.5">
+                    <!-- Previous Button -->
+                    <?php if ($currentPageNum > 1): ?>
+                        <a href="<?= esc($buildPageUrl($currentPageNum - 1)) ?>"
+                           class="px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-stone-700 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs">
+                            <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                            <span>Prev</span>
+                        </a>
+                    <?php else: ?>
+                        <span class="px-3.5 py-2 rounded-xl border border-stone-200 bg-stone-100 text-stone-400 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed select-none">
+                            <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                            <span>Prev</span>
+                        </span>
+                    <?php endif; ?>
+
+                    <!-- Numbered Page Links (1, 2, 3...) -->
+                    <?php foreach ($pageNumbers as $item): ?>
+                        <?php if ($item === '...'): ?>
+                            <span class="px-2 py-2 text-xs font-bold text-stone-400 select-none">&hellip;</span>
+                        <?php elseif ((int) $item === $currentPageNum): ?>
+                            <span aria-current="page"
+                                  class="min-w-[36px] px-3 py-2 rounded-xl bg-stone-950 text-white text-xs font-black text-center shadow-sm">
+                                <?= (int) $item ?>
+                            </span>
+                        <?php else: ?>
+                            <a href="<?= esc($buildPageUrl((int) $item)) ?>"
+                               class="min-w-[36px] px-3 py-2 rounded-xl border border-stone-300 bg-white hover:bg-amber-50 hover:border-amber-400 hover:text-amber-700 text-stone-700 text-xs font-bold text-center transition-colors shadow-2xs">
+                                <?= (int) $item ?>
+                            </a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+
+                    <!-- Next Button -->
+                    <?php if ($currentPageNum < $totalPagesNum): ?>
+                        <a href="<?= esc($buildPageUrl($currentPageNum + 1)) ?>"
+                           class="px-4 py-2 rounded-xl bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs">
+                            <span>Next</span>
+                            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </a>
+                    <?php else: ?>
+                        <span class="px-4 py-2 rounded-xl border border-stone-200 bg-stone-100 text-stone-400 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed select-none">
+                            <span>Next</span>
+                            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </span>
+                    <?php endif; ?>
+                </div>
+            </nav>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 

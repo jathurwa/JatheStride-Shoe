@@ -31,18 +31,30 @@ class Products extends BaseController
     public function offers()
     {
         $allCategories = $this->categoryModel->findAll();
-        $shoes = $this->shoeModel->getOffers(100);
-        $totalShoesCount = $this->shoeModel->countAllResults(false);
+        $perPage = 20;
+        $requestedPage = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $totalFilteredCount = $this->shoeModel->countOffers();
+        $totalPages = max(1, (int) ceil($totalFilteredCount / $perPage));
+        $currentPage = min($requestedPage, $totalPages);
+        $offset = ($currentPage - 1) * $perPage;
+
+        $shoes = $this->shoeModel->getOffers($perPage, $offset);
+        $totalShoesCount = $this->shoeModel->countShoesByCategory(null);
 
         return view('storefront/home', [
-            'title'            => 'Special Offers & Discounts | ApexStride',
-            'shoes'            => $shoes,
-            'categories'       => $allCategories,
-            'selectedCategory' => 'offers',
-            'isOffersOnly'     => true,
-            'offersCount'      => count($shoes),
-            'totalShoesCount'  => $totalShoesCount,
-            'featuredShoes'    => array_filter($shoes, static fn($s) => !empty($s['is_featured'])),
+            'title'              => 'Special Offers & Discounts | ApexStride',
+            'shoes'              => $shoes,
+            'categories'         => $allCategories,
+            'selectedCategory'   => 'offers',
+            'isOffersOnly'       => true,
+            'offersCount'        => $totalFilteredCount,
+            'totalShoesCount'    => $totalShoesCount,
+            'totalFilteredCount' => $totalFilteredCount,
+            'currentPage'        => $currentPage,
+            'totalPages'         => $totalPages,
+            'perPage'            => $perPage,
+            'paginationBaseUrl'  => base_url('offers'),
+            'featuredShoes'      => array_filter($shoes, static fn($s) => !empty($s['is_featured'])),
         ]);
     }
 
@@ -64,20 +76,32 @@ class Products extends BaseController
             throw PageNotFoundException::forPageNotFound("Category '{$slug}' not found.");
         }
 
-        $shoes = $this->shoeModel->getShoesWithCategory($category['id'], 100);
+        $perPage = 20;
+        $requestedPage = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $totalFilteredCount = $this->shoeModel->countShoesByCategory((int) $category['id']);
+        $totalPages = max(1, (int) ceil($totalFilteredCount / $perPage));
+        $currentPage = min($requestedPage, $totalPages);
+        $offset = ($currentPage - 1) * $perPage;
+
+        $shoes = $this->shoeModel->getShoesWithCategory((int) $category['id'], $perPage, $offset);
         $allCategories = $this->categoryModel->findAll();
-        $offersCount = count($this->shoeModel->getOffers(100));
-        $totalShoesCount = $this->shoeModel->countAllResults(false);
+        $offersCount = $this->shoeModel->countOffers();
+        $totalShoesCount = $this->shoeModel->countShoesByCategory(null);
 
         return view('storefront/home', [
-            'title'            => $category['name'] . ' Shoes | ApexStride',
-            'shoes'            => $shoes,
-            'categories'       => $allCategories,
-            'currentCategory'  => $category,
-            'selectedCategory' => $slug,
-            'isOffersOnly'     => false,
-            'offersCount'      => $offersCount,
-            'totalShoesCount'  => $totalShoesCount,
+            'title'              => $category['name'] . ' Shoes | ApexStride',
+            'shoes'              => $shoes,
+            'categories'         => $allCategories,
+            'currentCategory'    => $category,
+            'selectedCategory'   => $slug,
+            'isOffersOnly'       => false,
+            'offersCount'        => $offersCount,
+            'totalShoesCount'    => $totalShoesCount,
+            'totalFilteredCount' => $totalFilteredCount,
+            'currentPage'        => $currentPage,
+            'totalPages'         => $totalPages,
+            'perPage'            => $perPage,
+            'paginationBaseUrl'  => base_url('category/' . $slug),
         ]);
     }
 
@@ -107,6 +131,8 @@ class Products extends BaseController
     public function search()
     {
         $query = trim((string) $this->request->getGet('q'));
+        $perPage = 20;
+        $requestedPage = max(1, (int) ($this->request->getGet('page') ?? 1));
 
         $builder = $this->shoeModel
             ->select('shoes.*, categories.name as category_name, categories.slug as category_slug')
@@ -122,24 +148,38 @@ class Products extends BaseController
                 ->groupEnd();
         }
 
+        $totalFilteredCount = (int) $builder->countAllResults(false);
+        $totalPages = max(1, (int) ceil($totalFilteredCount / $perPage));
+        $currentPage = min($requestedPage, $totalPages);
+        $offset = ($currentPage - 1) * $perPage;
+
         $shoes = $builder
             ->orderBy('shoes.is_featured', 'DESC')
             ->orderBy('shoes.created_at', 'DESC')
-            ->findAll(100);
+            ->orderBy('shoes.id', 'DESC')
+            ->findAll($perPage, $offset);
 
-        $offersCount = count($this->shoeModel->getOffers(100));
-        $totalShoesCount = $this->shoeModel->countAllResults(false);
+        $offersCount = $this->shoeModel->countOffers();
+        $totalShoesCount = $this->shoeModel->countShoesByCategory(null);
+        $paginationBaseUrl = $query !== ''
+            ? base_url('search?q=' . urlencode($query))
+            : base_url('search');
 
         return view('storefront/home', [
-            'title'            => $query === '' ? 'Search Shoes | ApexStride' : 'Search: ' . $query . ' | ApexStride',
-            'shoes'            => $shoes,
-            'categories'       => $this->categoryModel->findAll(),
-            'selectedCategory' => null,
-            'searchTerm'       => $query,
-            'isOffersOnly'     => false,
-            'offersCount'      => $offersCount,
-            'totalShoesCount'  => $totalShoesCount,
-            'featuredShoes'    => array_filter($shoes, static fn($shoe) => !empty($shoe['is_featured'])),
+            'title'              => $query === '' ? 'Search Shoes | ApexStride' : 'Search: ' . $query . ' | ApexStride',
+            'shoes'              => $shoes,
+            'categories'         => $this->categoryModel->findAll(),
+            'selectedCategory'   => null,
+            'searchTerm'         => $query,
+            'isOffersOnly'       => false,
+            'offersCount'        => $offersCount,
+            'totalShoesCount'    => $totalShoesCount,
+            'totalFilteredCount' => $totalFilteredCount,
+            'currentPage'        => $currentPage,
+            'totalPages'         => $totalPages,
+            'perPage'            => $perPage,
+            'paginationBaseUrl'  => $paginationBaseUrl,
+            'featuredShoes'      => array_filter($shoes, static fn($shoe) => !empty($shoe['is_featured'])),
         ]);
     }
 
